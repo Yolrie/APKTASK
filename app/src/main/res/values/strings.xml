@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">APKTASK</string>
+    <string name="app_name">Do.it</string>
     <string name="button_add">Ajouter</string>
     <string name="hint_task">Ajouter une tâche</string>
     <string name="button_settings">Paramètres</string>
