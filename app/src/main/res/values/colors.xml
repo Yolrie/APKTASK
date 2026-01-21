@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Couleurs principales -->
+    <color name="primary">#1F2937</color>      <!-- Gris foncé élégant -->
+    <color name="primary_light">#374151</color> <!-- Gris un peu plus clair -->
+    <color name="accent">#3B82F6</color>       <!-- Bleu moderne -->
+
+    <!-- Neutres -->
+    <color name="background">#FFFFFF</color>   <!-- Blanc pur -->
+    <color name="surface">#F9FAFB</color>      <!-- Gris très clair (fond cartes) -->
+    <color name="text_primary">#1F2937</color> <!-- Texte foncé -->
+    <color name="text_secondary">#6B7280</color> <!-- Texte gris -->
+    <color name="border">#E5E7EB</color>       <!-- Bordures grises -->
+
+    <!-- Statuts -->
+    <color name="success">#10B981</color>      <!-- Vert (tâche faite) -->
+    <color name="error">#EF4444</color>        <!-- Rouge (erreur/suppression) -->
+</resources>

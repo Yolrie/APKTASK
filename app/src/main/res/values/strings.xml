@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">APKTASK</string>
+    <string name="button_add">Ajouter</string>
+    <string name="hint_task">Ajouter une tâche</string>
+    <string name="button_settings">Paramètres</string>
+    <string name="button_delete">Supprimer</string>
+    <string name="button_cancel">Annuler</string>
+    <string name="button_save">Enregistrer</string>
+    <string name="button_edit">Modifier</string>
+    <string name="edit_text">Entrer une tâche</string>
+    <string name="title_textview">Tâches du jour</string>
+    <string name="list_recyclerview">Liste des taĉhes</string>
+</resources>
