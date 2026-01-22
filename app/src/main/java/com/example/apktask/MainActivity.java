@@ -50,11 +50,10 @@ public class MainActivity extends AppCompatActivity {
                     String texte = editText.getText().toString();
                     if (!texte.isEmpty()) {
                         System.out.println("Tâche : " + texte);
+                        ajouterTache();
                     } else {
                         System.out.println("Champ vide !");
                     }
-
-                    ajouterTache();
                 }
             });
 
