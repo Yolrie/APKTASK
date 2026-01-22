@@ -6,6 +6,13 @@ public class Task {
     private boolean isDone;
     private long createAt;
 
+    public Task (String id, String title, boolean isDone, long createAt) {
+        this.id = id;
+        this.title = title;
+        this.isDone = isDone;
+        this.createAt = createAt;
+    }
+
     public String getId() {
         return id;
     }
@@ -30,10 +37,6 @@ public class Task {
     public void setCreateAt(long createAt) {
         this.createAt = createAt;
     }
-    public Task (String id, String title, boolean isDone, long createAt) {
-        this.id = id;
-        this.title = title;
-        this.isDone = isDone;
-        this.createAt = createAt;
-    }
+
+
 }
