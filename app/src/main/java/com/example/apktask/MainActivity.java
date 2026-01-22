@@ -42,17 +42,22 @@ public class MainActivity extends AppCompatActivity {
                     .inflate(R.layout.item_task, zoneEnCours, false);
 
             Button btnAjouter = nouvelleLigne.findViewById(R.id.btn_task_add);
+            EditText editText = nouvelleLigne.findViewById(R.id.edittext_task_input);
 
             btnAjouter.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    String texte = editText.getText().toString();
+                    if (!texte.isEmpty()) {
+                        System.out.println("Tâche : " + texte);
+                    } else {
+                        System.out.println("Champ vide !");
+                    }
+
                     ajouterTache();
                 }
             });
 
-
             zoneEnCours.addView(nouvelleLigne);
         }
-
-
 }
