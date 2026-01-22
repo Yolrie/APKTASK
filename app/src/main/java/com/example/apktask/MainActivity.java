@@ -14,10 +14,13 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 
+import java.util.ArrayList;
+
 public class MainActivity extends AppCompatActivity {
 
     private LinearLayout zoneEnCours;
     private int compteurTaches = 0;
+    private ArrayList<Task> listeTaches;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         zoneEnCours = findViewById(R.id.zone_en_cours);
+        listeTaches = new ArrayList<>();
 
         ajouterTache();
 
@@ -50,6 +54,18 @@ public class MainActivity extends AppCompatActivity {
                     String texte = editText.getText().toString();
                     if (!texte.isEmpty()) {
                         System.out.println("Tâche : " + texte);
+
+                        Task nouvelleTache = new Task (
+                                listeTaches.size() + 1,
+                                texte,
+                                false,
+                                System.currentTimeMillis()
+                        );
+                        listeTaches.add(nouvelleTache);
+
+                        editText.setEnabled(false);
+                        btnAjouter.setText("Modifier");
+
                         ajouterTache();
                     } else {
                         System.out.println("Champ vide !");

@@ -1,22 +1,22 @@
 package com.example.apktask;
 
 public class Task {
-    private String id;
+    private int id;
     private String title;
     private boolean isDone;
     private long createAt;
 
-    public Task (String id, String title, boolean isDone, long createAt) {
+    public Task (int id, String title, boolean isDone, long createAt) {
         this.id = id;
         this.title = title;
         this.isDone = isDone;
         this.createAt = createAt;
     }
 
-    public String getId() {
+    public int getId() {
         return id;
     }
-    public void setId(String id) {
+    public void setId(int id) {
         this.id = id;
     }
     public String getTitle() {
