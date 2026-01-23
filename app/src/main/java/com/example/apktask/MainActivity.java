@@ -47,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
 
             Button btnAjouter = nouvelleLigne.findViewById(R.id.btn_task_add);
             EditText editText = nouvelleLigne.findViewById(R.id.edittext_task_input);
+            Button btnSupprimer = nouvelleLigne.findViewById(R.id.btn_task_delete);
 
             btnAjouter.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -63,13 +64,42 @@ public class MainActivity extends AppCompatActivity {
                         );
                         listeTaches.add(nouvelleTache);
 
+                        nouvelleLigne.setTag(nouvelleTache.id);
+
                         editText.setEnabled(false);
                         btnAjouter.setText("Modifier");
 
                         ajouterTache();
+
                     } else {
                         System.out.println("Champ vide !");
                     }
+                }
+            });
+
+            btnSupprimer.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    String texte = editText.getText().toString();
+
+                    // 🔴 SI C'EST VIDE, ON NE FAIT RIEN
+                    if (texte.isEmpty()) {
+                        System.out.println("Impossible de supprimer une tâche vide !");
+                        return;  // ← STOP, on sort de la fonction
+                    }
+
+                    // SINON, on supprime normalement
+                    if (!editText.isEnabled()) {
+                        int taskId = (Integer) nouvelleLigne.getTag();
+                        for (int i = 0; i < listeTaches.size(); i++) {
+                            Task t = listeTaches.get(i);
+                            if (t.id == taskId) {
+                                listeTaches.remove(i);
+                                break;
+                            }
+                        }
+                    }
+                    zoneEnCours.removeView(nouvelleLigne);
                 }
             });
 

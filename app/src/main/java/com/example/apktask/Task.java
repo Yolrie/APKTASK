@@ -1,8 +1,8 @@
 package com.example.apktask;
 
 public class Task {
-    private int id;
-    private String title;
+    public int id;
+    public String title;
     private boolean isDone;
     private long createAt;
 
