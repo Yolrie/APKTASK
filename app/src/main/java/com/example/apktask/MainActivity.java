@@ -41,68 +41,92 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-        private void ajouterTache() {
-            View nouvelleLigne = LayoutInflater.from(this)
-                    .inflate(R.layout.item_task, zoneEnCours, false);
+    private void ajouterTache() {
+        View nouvelleLigne = LayoutInflater.from(this)
+                .inflate(R.layout.item_task, zoneEnCours, false);
 
-            Button btnAjouter = nouvelleLigne.findViewById(R.id.btn_task_add);
-            EditText editText = nouvelleLigne.findViewById(R.id.edittext_task_input);
-            Button btnSupprimer = nouvelleLigne.findViewById(R.id.btn_task_delete);
+        Button btnAjouter = nouvelleLigne.findViewById(R.id.btn_task_add);
+        EditText editText = nouvelleLigne.findViewById(R.id.edittext_task_input);
+        Button btnSupprimer = nouvelleLigne.findViewById(R.id.btn_task_delete);
 
-            btnAjouter.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    String texte = editText.getText().toString();
+        boolean[] enEdition = {false};  // false = normal, true = en édition
+
+        btnAjouter.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String texte = editText.getText().toString();
+                String boutonTexte = btnAjouter.getText().toString();
+
+                // CAS 1 : AJOUTER UNE NOUVELLE TÂCHE (première fois)
+                if (boutonTexte.equals("Ajouter")) {
                     if (!texte.isEmpty()) {
                         System.out.println("Tâche : " + texte);
 
-                        Task nouvelleTache = new Task (
+                        Task nouvelleTache = new Task(
                                 listeTaches.size() + 1,
                                 texte,
                                 false,
                                 System.currentTimeMillis()
                         );
                         listeTaches.add(nouvelleTache);
-
                         nouvelleLigne.setTag(nouvelleTache.id);
 
                         editText.setEnabled(false);
                         btnAjouter.setText("Modifier");
-
                         ajouterTache();
-
                     } else {
                         System.out.println("Champ vide !");
                     }
                 }
-            });
-
-            btnSupprimer.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    String texte = editText.getText().toString();
-
-                    // 🔴 SI C'EST VIDE, ON NE FAIT RIEN
-                    if (texte.isEmpty()) {
-                        System.out.println("Impossible de supprimer une tâche vide !");
-                        return;  // ← STOP, on sort de la fonction
+                // CAS 2 : PASSER EN ÉDITION
+                else if (boutonTexte.equals("Modifier")) {
+                    editText.setEnabled(true);
+                    btnAjouter.setText("Valider");
+                    enEdition[0] = true;
+                    System.out.println("En édition...");
+                }
+                // CAS 3 : VALIDER LA MODIFICATION
+                else if (boutonTexte.equals("Valider")) {
+                    if (!texte.isEmpty()) {
+                        System.out.println("Modification confirmée : " + texte);
+                        editText.setEnabled(false);
+                        btnAjouter.setText("Modifier");
+                        enEdition[0] = false;
+                    } else {
+                        System.out.println("Champ vide !");
                     }
+                }
+            }
+        });
 
-                    // SINON, on supprime normalement
-                    if (!editText.isEnabled()) {
-                        int taskId = (Integer) nouvelleLigne.getTag();
-                        for (int i = 0; i < listeTaches.size(); i++) {
-                            Task t = listeTaches.get(i);
-                            if (t.id == taskId) {
-                                listeTaches.remove(i);
-                                break;
-                            }
+        btnSupprimer.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String texte = editText.getText().toString();
+
+                if (texte.isEmpty()) {
+                    System.out.println("Impossible de supprimer une tâche vide !");
+                    return;
+                }
+
+                // Vérifier que la tâche est validée (a un ID dans listeTaches)
+                if (!editText.isEnabled()) {
+                    int taskId = (Integer) nouvelleLigne.getTag();
+                    for (int i = 0; i < listeTaches.size(); i++) {
+                        Task t = listeTaches.get(i);
+                        if (t.id == taskId) {
+                            listeTaches.remove(i);
+                            break;
                         }
                     }
                     zoneEnCours.removeView(nouvelleLigne);
+                } else {
+                    System.out.println("Impossible de supprimer une tâche non validée !");
                 }
-            });
+            }
+        });
 
-            zoneEnCours.addView(nouvelleLigne);
-        }
+
+        zoneEnCours.addView(nouvelleLigne);
+    }
 }
