@@ -5,14 +5,18 @@ public class Task {
     public String title;
     private boolean isDone;
     private long createAt;
+    public int status;
 
     public Task (int id, String title, boolean isDone, long createAt) {
         this.id = id;
         this.title = title;
         this.isDone = isDone;
         this.createAt = createAt;
+        this.status = 0;
     }
 
+    public int getStatus() {return status;}
+    public void setStatus(int status) {this.status = status;}
     public int getId() {
         return id;
     }
@@ -37,6 +41,5 @@ public class Task {
     public void setCreateAt(long createAt) {
         this.createAt = createAt;
     }
-
 
 }

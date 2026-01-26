@@ -87,6 +87,18 @@
 
     </ScrollView>
 
+    <!-- BOUTON RÉINITIALISER -->
+    <Button
+        android:id="@+id/button_reset"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/button_reinitialiser"
+        android:layout_margin="16dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@+id/button_valider"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <!-- BOUTON FIXE EN BAS -->
     <Button
         android:id="@+id/button_valider"

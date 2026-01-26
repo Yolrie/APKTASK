@@ -10,4 +10,5 @@
     <string name="edit_text">Entrer une tâche</string>
     <string name="title_textview">Tâches du jour</string>
     <string name="list_recyclerview">Liste des taĉhes</string>
+    <string name="button_reinitialiser">Réinitialisation</string>
 </resources>
