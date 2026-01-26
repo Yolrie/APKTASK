@@ -195,8 +195,9 @@ public class MainActivity extends AppCompatActivity {
                 zoneEnCours.addView(nouvelleLigne);
             }
             else if (t.status == 1) {
+                // ENREGISTRÉE (pas encore terminée ni annulée)
                 btnAjouter.setText("Terminé");
-                btnSupprimer.setVisibility(View.GONE);
+                btnSupprimer.setText("Annuler");  // ← Le bouton "Annuler" réapparaît
                 editText.setTextColor(Color.BLACK);
                 editText.setEnabled(false);
 
@@ -204,7 +205,19 @@ public class MainActivity extends AppCompatActivity {
                     int taskId = (Integer) nouvelleLigne.getTag();
                     for (Task task : listeTaches) {
                         if (task.id == taskId) {
-                            task.setStatus(2);
+                            task.setStatus(2);  // Passer en "Terminée" (2)
+                            break;
+                        }
+                    }
+                    sauvegarderTaches();
+                    afficherTaches();
+                });
+
+                btnSupprimer.setOnClickListener(v -> {
+                    int taskId = (Integer) nouvelleLigne.getTag();
+                    for (Task task : listeTaches) {
+                        if (task.id == taskId) {
+                            task.setStatus(3);  // Passer en "Annulée" (3)
                             break;
                         }
                     }
@@ -214,6 +227,7 @@ public class MainActivity extends AppCompatActivity {
 
                 zoneEnCours.addView(nouvelleLigne);
             }
+
             else if (t.status == 2) {
                 btnAjouter.setVisibility(View.GONE);
                 btnSupprimer.setVisibility(View.GONE);
