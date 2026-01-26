@@ -1,15 +1,26 @@
 package com.example.apktask;
 
 public class Task {
-    private String id;
-    private String title;
+    public int id;
+    public String title;
     private boolean isDone;
     private long createAt;
+    public int status;
 
-    public String getId() {
+    public Task (int id, String title, boolean isDone, long createAt) {
+        this.id = id;
+        this.title = title;
+        this.isDone = isDone;
+        this.createAt = createAt;
+        this.status = 0;
+    }
+
+    public int getStatus() {return status;}
+    public void setStatus(int status) {this.status = status;}
+    public int getId() {
         return id;
     }
-    public void setId(String id) {
+    public void setId(int id) {
         this.id = id;
     }
     public String getTitle() {
@@ -30,10 +41,5 @@ public class Task {
     public void setCreateAt(long createAt) {
         this.createAt = createAt;
     }
-    public Task (String id, String title, boolean isDone, long createAt) {
-        this.id = id;
-        this.title = title;
-        this.isDone = isDone;
-        this.createAt = createAt;
-    }
+
 }
