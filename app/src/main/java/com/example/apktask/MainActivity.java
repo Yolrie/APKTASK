@@ -147,6 +147,8 @@ public class MainActivity extends AppCompatActivity {
             Button btnAjouter = nouvelleLigne.findViewById(R.id.btn_task_add);
             Button btnSupprimer = nouvelleLigne.findViewById(R.id.btn_task_delete);
 
+            editText.setTextColor(getColor(android.R.color.system_primary_dark));
+
             editText.setText(t.getTitle());
             editText.setEnabled(false);
             nouvelleLigne.setTag(t.id);
@@ -198,7 +200,7 @@ public class MainActivity extends AppCompatActivity {
                 // ENREGISTRÉE (pas encore terminée ni annulée)
                 btnAjouter.setText("Terminé");
                 btnSupprimer.setText("Annuler");  // ← Le bouton "Annuler" réapparaît
-                editText.setTextColor(Color.BLACK);
+
                 editText.setEnabled(false);
 
                 btnAjouter.setOnClickListener(v -> {
