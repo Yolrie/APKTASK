@@ -147,6 +147,8 @@ public class MainActivity extends AppCompatActivity {
             Button btnAjouter = nouvelleLigne.findViewById(R.id.btn_task_add);
             Button btnSupprimer = nouvelleLigne.findViewById(R.id.btn_task_delete);
 
+            editText.setTextColor(getColor(android.R.color.system_primary_dark));
+
             editText.setText(t.getTitle());
             editText.setEnabled(false);
             nouvelleLigne.setTag(t.id);
@@ -195,16 +197,29 @@ public class MainActivity extends AppCompatActivity {
                 zoneEnCours.addView(nouvelleLigne);
             }
             else if (t.status == 1) {
+                // ENREGISTRÉE (pas encore terminée ni annulée)
                 btnAjouter.setText("Terminé");
-                btnSupprimer.setVisibility(View.GONE);
-                editText.setTextColor(Color.BLACK);
+                btnSupprimer.setText("Annuler");  // ← Le bouton "Annuler" réapparaît
+
                 editText.setEnabled(false);
 
                 btnAjouter.setOnClickListener(v -> {
                     int taskId = (Integer) nouvelleLigne.getTag();
                     for (Task task : listeTaches) {
                         if (task.id == taskId) {
-                            task.setStatus(2);
+                            task.setStatus(2);  // Passer en "Terminée" (2)
+                            break;
+                        }
+                    }
+                    sauvegarderTaches();
+                    afficherTaches();
+                });
+
+                btnSupprimer.setOnClickListener(v -> {
+                    int taskId = (Integer) nouvelleLigne.getTag();
+                    for (Task task : listeTaches) {
+                        if (task.id == taskId) {
+                            task.setStatus(3);  // Passer en "Annulée" (3)
                             break;
                         }
                     }
@@ -214,6 +229,7 @@ public class MainActivity extends AppCompatActivity {
 
                 zoneEnCours.addView(nouvelleLigne);
             }
+
             else if (t.status == 2) {
                 btnAjouter.setVisibility(View.GONE);
                 btnSupprimer.setVisibility(View.GONE);
