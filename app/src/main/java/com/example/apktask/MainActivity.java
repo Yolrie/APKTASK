@@ -14,6 +14,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 
@@ -26,6 +28,14 @@ public class MainActivity extends AppCompatActivity {
     private Button btnReset;
     private ArrayList<Task> listeTaches;
     private boolean isEnregistree = false;
+    private TextView counterEnCours;
+    private TextView counterTerminees;
+    private TextView counterAnnulees;
+    private ProgressBar progressBar;
+    private TextView titreZoneEnCours;
+    private TextView titreZoneTerminees;
+    private TextView titreZoneAnnulees;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,9 +49,18 @@ public class MainActivity extends AppCompatActivity {
         btnValider = findViewById(R.id.button_valider);
         btnReset = findViewById(R.id.button_reset);
         listeTaches = new ArrayList<>();
+        counterEnCours = findViewById(R.id.counter_en_cours);
+        counterTerminees = findViewById(R.id.counter_terminees);
+        counterAnnulees = findViewById(R.id.counter_annulees);
+        titreZoneEnCours = findViewById(R.id.counter_en_cours);
+        titreZoneTerminees = findViewById(R.id.counter_terminees);
+        titreZoneAnnulees = findViewById(R.id.counter_annulees);
 
         chargerTaches();
         chargerEtat();
+        if (isEnregistree) {
+            afficherTitresZones(true);
+        }
         afficherTaches();
         ajouterTache();
 
@@ -130,7 +149,7 @@ public class MainActivity extends AppCompatActivity {
                 zoneEnCours.removeView(nouvelleLigne);
             }
         });
-
+        mettreAJourCompteurs();
         zoneEnCours.addView(nouvelleLigne);
     }
 
@@ -246,6 +265,7 @@ public class MainActivity extends AppCompatActivity {
 
                 zoneAnnulees.addView(nouvelleLigne);
             }
+            mettreAJourCompteurs();
         }
     }
 
@@ -260,7 +280,10 @@ public class MainActivity extends AppCompatActivity {
         isEnregistree = true;
         btnValider.setVisibility(View.GONE);
         btnReset.setVisibility(View.VISIBLE);
+
+        afficherTitresZones(true);
         afficherTaches();
+        mettreAJourCompteurs();
     }
 
     private void reinitialiserTout() {
@@ -273,10 +296,12 @@ public class MainActivity extends AppCompatActivity {
         btnValider.setVisibility(View.VISIBLE);
         btnReset.setVisibility(View.GONE);
 
+        afficherTitresZones(false);
         afficherTaches();
         ajouterTache();
 
         System.out.println("Tâches réinitialisées !");
+        mettreAJourCompteurs();
     }
 
     private void sauvegarderTaches() {
@@ -362,4 +387,41 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("tasks", MODE_PRIVATE);
         isEnregistree = prefs.getBoolean("isEnregistree", false);
     }
+
+    private void mettreAJourCompteurs() {
+        int enCours = 0;
+        int terminees = 0;
+        int annulees = 0;
+
+        for (Task t : listeTaches) {
+            if (t.status == 0 || t.status == 1) {
+                enCours++;
+            } else if (t.status == 2) {
+                terminees++;
+            } else if (t.status == 3) {
+                annulees++;
+            }
+        }
+
+        counterEnCours.setText("En cours: " + enCours);
+        counterTerminees.setText("Terminées: " + terminees);
+        counterAnnulees.setText("Annulées: " + annulees);
+
+        // ProgressBar (optionnel - commente si pas dans XML)
+        if (progressBar != null) {
+            int total = listeTaches.size();
+            int progress = total > 0 ? (terminees * 100) / total : 0;
+            progressBar.setProgress(progress);
+        }
+    }
+
+
+    private void afficherTitresZones(boolean afficher) {
+        int visibilite = afficher ? View.VISIBLE : View.GONE;
+
+        titreZoneEnCours.setVisibility(visibilite);
+        titreZoneTerminees.setVisibility(visibilite);
+        titreZoneAnnulees.setVisibility(visibilite);
+    }
+
 }
