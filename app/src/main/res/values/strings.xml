@@ -11,4 +11,7 @@
     <string name="title_textview">Tâches du jour</string>
     <string name="list_recyclerview">Liste des taĉhes</string>
     <string name="button_reinitialiser">Réinitialisation</string>
+    <string name="in_progress">En cours</string>
+    <string name="finish">Terminées</string>
+    <string name="canceled">Annulées</string>
 </resources>

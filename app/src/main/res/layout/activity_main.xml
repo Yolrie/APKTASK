@@ -43,6 +43,61 @@
 
     </LinearLayout>
 
+    <!-- COMPTEURS (sous le header) -->
+    <LinearLayout
+        android:id="@+id/layout_compteurs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center"
+        app:layout_constraintTop_toBottomOf="@id/header"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/counter_en_cours"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="En cours: 0"
+            android:textSize="14sp"
+            android:gravity="center"/>
+
+        <TextView
+            android:id="@+id/counter_terminees"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Terminées: 0"
+            android:textColor="#4CAF50"
+            android:textSize="14sp"
+            android:gravity="center"/>
+
+        <TextView
+            android:id="@+id/counter_annulees"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Annulées: 0"
+            android:textColor="#F44336"
+            android:textSize="14sp"
+            android:gravity="center"/>
+    </LinearLayout>
+
+    <!-- PROGRESS BAR (sous les compteurs) -->
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+        android:layout_width="0dp"
+        android:layout_height="8dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@id/layout_compteurs"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
     <!-- SCROLLVIEW AVEC LES 3 ZONES -->
     <ScrollView
         android:id="@+id/scrollview_tasks"
@@ -50,8 +105,9 @@
         android:layout_height="0dp"
         android:paddingLeft="16dp"
         android:paddingRight="16dp"
-        app:layout_constraintTop_toBottomOf="@+id/header"
-        app:layout_constraintBottom_toTopOf="@+id/button_valider"
+        android:paddingTop="8dp"
+        app:layout_constraintTop_toBottomOf="@id/progress_bar"
+        app:layout_constraintBottom_toTopOf="@id/button_reset"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
@@ -60,13 +116,39 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <TextView
+                android:id="@+id/titre_zone_en_cours"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/in_progress"
+                android:textSize="18sp"
+                android:gravity="center"
+                android:textStyle="bold"
+                android:padding="8dp"
+                android:visibility="gone"/>
+
             <!-- ZONE 1 : TÂCHES EN COURS -->
             <LinearLayout
                 android:id="@+id/zone_en_cours"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:layout_marginBottom="16dp" />
+                android:layout_marginBottom="16dp"/>
+
+            <TextView
+                android:id="@+id/titre_zone_terminees"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/in_progress"
+                android:textSize="18sp"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:textStyle="bold"
+                android:padding="8dp"
+                android:visibility="gone"
+                android:textColor="#4CAF50"/>
 
             <!-- ZONE 2 : TÂCHES TERMINÉES -->
             <LinearLayout
@@ -74,14 +156,28 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:layout_marginBottom="16dp" />
+                android:layout_marginBottom="16dp"/>
+
+            <TextView
+                android:id="@+id/titre_zone_annulees"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/in_progress"
+                android:textSize="18sp"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:textStyle="bold"
+                android:padding="8dp"
+                android:visibility="gone"
+                android:textColor="#F44336"/>
 
             <!-- ZONE 3 : TÂCHES ANNULÉES -->
             <LinearLayout
                 android:id="@+id/zone_annulees"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
+                android:orientation="vertical"/>
 
         </LinearLayout>
 
