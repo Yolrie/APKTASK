@@ -2,32 +2,40 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!--
+        Sécurité :
+        - allowBackup="false" : données chiffrées, non exposées via backup ADB/Cloud
+        - Aucune permission réseau : application 100% locale
+        - exported="false" sur le receiver : seul le système peut le déclencher
+    -->
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher_do_it"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_do_it_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.APKTASK">
+        android:theme="@style/Theme.APKTASK"
+        tools:targetApi="31">
+
         <activity
-            android:name=".MainActivity"
-            android:exported="true">
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <receiver android:name=".MidnightReceiver"
+        <receiver
+            android:name=".receiver.MidnightReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.DATE_CHANGED" />
             </intent-filter>
         </receiver>
-
 
     </application>
 
