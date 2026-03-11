@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Item pour les tâches DRAFT (brouillon) et IN_PROGRESS (en cours).
+  Contient un champ de texte éditable et deux boutons d'action.
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingVertical="6dp"
+    android:gravity="center_vertical">
+
+    <!-- Champ de saisie / affichage du titre -->
+    <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/etTaskTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:inputType="textCapSentences|textAutoCorrect"
+        android:maxLength="200"
+        android:maxLines="2"
+        android:background="@android:color/transparent"
+        android:textSize="15sp"
+        android:paddingHorizontal="4dp" />
+
+    <!-- Bouton principal : Modifier / Valider / Terminé -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAction"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:textSize="12sp"
+        android:minWidth="0dp"
+        android:paddingHorizontal="8dp" />
+
+    <!-- Bouton secondaire : Supprimer / Annuler -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSecondary"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="2dp"
+        android:textColor="@color/error"
+        android:textSize="12sp"
+        android:minWidth="0dp"
+        android:paddingHorizontal="8dp" />
+
+</LinearLayout>
