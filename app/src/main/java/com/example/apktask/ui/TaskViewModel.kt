@@ -6,27 +6,35 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import com.example.apktask.data.TaskRepository
+import com.example.apktask.data.UserRepository
+import com.example.apktask.model.Streak
 import com.example.apktask.model.Task
 import com.example.apktask.model.TaskStatus
+import com.example.apktask.util.DateUtils
 import com.example.apktask.util.InputValidator
+import java.util.Calendar
 
 /**
- * ViewModel MVVM — source de vérité unique pour l'UI.
+ * ViewModel des tâches — source de vérité unique pour l'onglet Tâches.
  *
  * Responsabilités :
- *  - Orchestrer les opérations CRUD sur les tâches
- *  - Gérer l'état d'édition temporaire (UI uniquement)
- *  - Exposer des LiveData consommées par MainActivity
- *  - Persister via TaskRepository (données chiffrées)
+ *  - CRUD tâches + gestion session (register / reset)
+ *  - Exposition de la série (streak) pour affichage dans l'en-tête
+ *  - Message motivationnel quotidien (déterministe sur la date)
+ *  - Persistance via TaskRepository (données chiffrées)
  *
  * Sécurité :
- *  - Toute entrée utilisateur passe par InputValidator avant traitement
- *  - MAX_TASKS limite le nombre de tâches (anti-abus)
- *  - Aucune donnée sensible n'est tracée dans les logs
+ *  - Toute entrée passe par InputValidator
+ *  - MAX_TASKS = 10 (anti-abus)
+ *  - Aucune donnée dans les logs
  */
 class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = TaskRepository(application)
+    private val userRepository = UserRepository(application)
+
+    val today: String = DateUtils.today()
+    val todayReadable: String = DateUtils.todayReadable()
 
     // ── État interne ─────────────────────────────────────────────────────────
 
@@ -34,75 +42,69 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private val _editingIds = MutableLiveData<Set<Int>>(emptySet())
 
     val isSessionRegistered = MutableLiveData<Boolean>(false)
-
-    /** Message d'erreur à afficher une seule fois (one-shot). */
+    val streak = MutableLiveData<Streak>(Streak())
     val errorMessage = MutableLiveData<String?>()
 
-    // ── État UI combiné (tâches + édition) ───────────────────────────────────
+    /** Message motivationnel du jour (le même toute la journée). */
+    val motivationalMessage: String = pickDailyMotivation()
 
-    /**
-     * Liste combinant l'état métier et l'état d'édition UI.
-     * Utilisée directement par les adapters RecyclerView.
-     */
+    // ── État UI combiné ──────────────────────────────────────────────────────
+
     val tasksUiState: LiveData<List<TaskUiState>> =
-        MediatorLiveData<List<TaskUiState>>().also { mediator ->
-            mediator.addSource(_tasks) { tasks ->
-                mediator.value = buildUiState(tasks, _editingIds.value.orEmpty())
+        MediatorLiveData<List<TaskUiState>>().also { m ->
+            m.addSource(_tasks) { tasks ->
+                m.value = buildUiState(tasks, _editingIds.value.orEmpty())
             }
-            mediator.addSource(_editingIds) { editingIds ->
-                mediator.value = buildUiState(_tasks.value.orEmpty(), editingIds)
+            m.addSource(_editingIds) { ids ->
+                m.value = buildUiState(_tasks.value.orEmpty(), ids)
             }
         }
 
     private fun buildUiState(tasks: List<Task>, editingIds: Set<Int>): List<TaskUiState> =
-        tasks.map { task -> TaskUiState(task = task, isEditing = task.id in editingIds) }
+        tasks.map { TaskUiState(task = it, isEditing = it.id in editingIds) }
 
     // ── Initialisation ───────────────────────────────────────────────────────
 
     init {
-        _tasks.value = repository.loadTasks()
-        isSessionRegistered.value = repository.loadSessionRegistered()
+        _tasks.value = repository.loadTasks(today)
+        isSessionRegistered.value = repository.loadSessionRegistered(today)
+        streak.value = userRepository.loadStreak()
     }
 
     // ── Opérations CRUD ──────────────────────────────────────────────────────
 
     fun addTask(title: String) {
         when (val result = InputValidator.validateTitle(title)) {
-            is InputValidator.Result.Failure -> {
-                errorMessage.value = result.reason
-            }
+            is InputValidator.Result.Failure -> errorMessage.value = result.reason
             is InputValidator.Result.Success -> {
                 val current = _tasks.value.orEmpty()
-                val draftCount = current.count { it.status == TaskStatus.DRAFT }
-                if (draftCount >= MAX_TASKS) {
-                    errorMessage.value = "Maximum $MAX_TASKS tâches autorisées"
+                if (current.count { it.status == TaskStatus.DRAFT } >= MAX_TASKS) {
+                    errorMessage.value = "Maximum $MAX_TASKS tâches autorisées par jour"
                     return
                 }
                 val newId = (current.maxOfOrNull { it.id } ?: 0) + 1
-                _tasks.value = current + Task(id = newId, title = result.sanitized)
+                _tasks.value = current + Task(id = newId, title = result.sanitized, date = today)
                 persist()
             }
         }
     }
 
     fun startEditing(taskId: Int) {
-        _editingIds.value = (_editingIds.value.orEmpty()) + taskId
+        _editingIds.value = _editingIds.value.orEmpty() + taskId
     }
 
     fun cancelEditing(taskId: Int) {
-        _editingIds.value = (_editingIds.value.orEmpty()) - taskId
+        _editingIds.value = _editingIds.value.orEmpty() - taskId
     }
 
     fun saveEdit(taskId: Int, rawTitle: String) {
         when (val result = InputValidator.validateTitle(rawTitle)) {
-            is InputValidator.Result.Failure -> {
-                errorMessage.value = result.reason
-            }
+            is InputValidator.Result.Failure -> errorMessage.value = result.reason
             is InputValidator.Result.Success -> {
                 _tasks.value = _tasks.value.orEmpty().map { task ->
                     if (task.id == taskId) task.copy(title = result.sanitized) else task
                 }
-                _editingIds.value = (_editingIds.value.orEmpty()) - taskId
+                _editingIds.value = _editingIds.value.orEmpty() - taskId
                 persist()
             }
         }
@@ -110,7 +112,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteTask(taskId: Int) {
         _tasks.value = _tasks.value.orEmpty().filter { it.id != taskId }
-        _editingIds.value = (_editingIds.value.orEmpty()) - taskId
+        _editingIds.value = _editingIds.value.orEmpty() - taskId
         persist()
     }
 
@@ -121,9 +123,8 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         persist()
     }
 
-    // ── Gestion de session ───────────────────────────────────────────────────
+    // ── Gestion de session ────────────────────────────────────────────────────
 
-    /** Valide la session : toutes les tâches DRAFT passent en IN_PROGRESS. */
     fun registerSession() {
         _tasks.value = _tasks.value.orEmpty().map { task ->
             if (task.status == TaskStatus.DRAFT) task.copy(status = TaskStatus.IN_PROGRESS)
@@ -132,15 +133,15 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         _editingIds.value = emptySet()
         isSessionRegistered.value = true
         persist()
-        repository.saveSessionRegistered(true)
+        repository.saveSessionRegistered(today, true)
     }
 
-    /** Réinitialise toutes les données de la session courante. */
     fun resetAll() {
         repository.clearAll()
         _tasks.value = emptyList()
         _editingIds.value = emptySet()
         isSessionRegistered.value = false
+        streak.value = userRepository.loadStreak()
     }
 
     // ── Utilitaires ──────────────────────────────────────────────────────────
@@ -150,10 +151,31 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun persist() {
-        repository.saveTasks(_tasks.value.orEmpty())
+        repository.saveTasks(today, _tasks.value.orEmpty())
+    }
+
+    /**
+     * Choisit le message motivationnel du jour de façon déterministe
+     * (numéro du jour dans l'année → index dans la liste).
+     */
+    private fun pickDailyMotivation(): String {
+        val dayOfYear = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
+        val messages = listOf(
+            "Chaque tâche accomplie vous rapproche de vos objectifs 🎯",
+            "Une journée productive commence par une liste claire 📋",
+            "Petit à petit, l'oiseau fait son nid 🪺",
+            "La discipline aujourd'hui, la liberté demain ✨",
+            "Votre futur moi vous remerciera pour ce que vous faites maintenant 🚀",
+            "Commencez par la tâche la plus difficile — le reste sera facile 💪",
+            "Le succès, c'est la somme de petits efforts répétés chaque jour 🔥",
+            "Vous n'avez pas besoin d'être parfait, juste constant 📈",
+            "Une étape après l'autre — c'est ainsi que l'on avance loin 🏆",
+            "Investir dans vos tâches du jour, c'est investir en vous 💡"
+        )
+        return messages[dayOfYear % messages.size]
     }
 
     companion object {
-        private const val MAX_TASKS = 10
+        const val MAX_TASKS = 10
     }
 }
