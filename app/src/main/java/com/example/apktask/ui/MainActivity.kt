@@ -1,17 +1,24 @@
 package com.example.apktask.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.apktask.R
 import com.example.apktask.databinding.ActivityMainBinding
 import com.example.apktask.model.TaskStatus
+import com.example.apktask.util.NotificationHelper
+import com.example.apktask.util.WorkScheduler
 import com.google.android.material.snackbar.Snackbar
 
 /**
@@ -37,6 +44,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adapterTerminees: TaskAdapter
     private lateinit var adapterAnnulees: TaskAdapter
 
+    /**
+     * Launcher pour la demande de permission POST_NOTIFICATIONS (Android 13+).
+     * Déclaré ici (avant onCreate) : registerForActivityResult doit être appelé
+     * avant que l'activité atteigne STARTED.
+     * Aucune action sur refus : WorkManager gère silencieusement l'absence de permission.
+     */
+    private val notifPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* accordée ou refusée : NotificationWorker vérifie la permission au moment de s'exécuter */ }
+
     // ── Cycle de vie ─────────────────────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,6 +73,13 @@ class MainActivity : AppCompatActivity() {
         setupRecyclerViews()
         setupClickListeners()
         observeViewModel()
+
+        // Canal de notification créé avant tout Worker (idempotent)
+        NotificationHelper.createChannel(this)
+        // Planification WorkManager (idempotent — UniquePeriodicWork KEEP/REPLACE)
+        WorkScheduler.init(this)
+        // Demande POST_NOTIFICATIONS si nécessaire (Android 13+)
+        requestNotificationPermission()
     }
 
     // ── Configuration initiale ────────────────────────────────────────────────
@@ -196,6 +220,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ── Utilitaires ───────────────────────────────────────────────────────────
+
+    /**
+     * Demande POST_NOTIFICATIONS sur Android 13+ si la permission n'est pas encore accordée.
+     * Sur les versions antérieures, les notifications ne nécessitent pas de permission runtime.
+     */
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+        ) {
+            notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     private fun hideKeyboard() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
