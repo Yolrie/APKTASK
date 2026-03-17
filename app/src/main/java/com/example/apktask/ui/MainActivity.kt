@@ -2,6 +2,7 @@ package com.example.apktask.ui
 
 import android.os.Bundle
 import android.view.View
+import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -19,6 +20,11 @@ import com.google.android.material.snackbar.Snackbar
  *  2. Transmettre les actions utilisateur au ViewModel
  *  3. Mettre à jour l'interface en réponse aux LiveData
  *
+ * Sécurité :
+ *  - FLAG_SECURE positionné AVANT setContentView() pour garantir qu'aucune
+ *    frame du contenu ne soit jamais exposée (captures d'écran, switcher,
+ *    enregistrement d'écran, Accessibility Services malveillants).
+ *
  * Aucune logique métier ne doit résider ici.
  */
 class MainActivity : AppCompatActivity() {
@@ -34,6 +40,14 @@ class MainActivity : AppCompatActivity() {
     // ── Cycle de vie ─────────────────────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // ⚠️ FLAG_SECURE doit impérativement précéder setContentView().
+        // Si posé après, Android peut capturer une première frame non protégée
+        // (visible dans le switcher d'apps ou via screenshot racing).
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_SECURE,
+            WindowManager.LayoutParams.FLAG_SECURE
+        )
+
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
