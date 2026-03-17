@@ -54,6 +54,7 @@ dependencies {
     implementation libs.navigation.ui.ktx
     implementation libs.coroutines.android
     implementation libs.fragment.ktx
+    implementation libs.work.runtime.ktx
 
     // ── Firebase (décommentez après avoir ajouté google-services.json) ──────
     // implementation platform(libs.firebase.bom)
