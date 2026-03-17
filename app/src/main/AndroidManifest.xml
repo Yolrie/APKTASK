@@ -5,9 +5,15 @@
     <!--
         Sécurité :
         - allowBackup="false" : données chiffrées, non exposées via backup ADB/Cloud
+        - POST_NOTIFICATIONS : déclarée explicitement, demandée à l'exécution (Android 13+)
         - Aucune permission réseau : application 100% locale
         - exported="false" sur le receiver : seul le système peut le déclencher
+        - WorkManager embarque RECEIVE_BOOT_COMPLETED via manifest merger : pas besoin
+          d'un BootReceiver applicatif supplémentaire
     -->
+
+    <!-- Requise depuis Android 13 (API 33) pour afficher des notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <application
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
