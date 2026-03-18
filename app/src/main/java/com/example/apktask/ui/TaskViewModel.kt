@@ -2,9 +2,7 @@ package com.example.apktask.ui
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MediatorLiveData
-import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
 import com.example.apktask.data.TaskRepository
 import com.example.apktask.data.UserRepository
 import com.example.apktask.model.Streak
@@ -12,6 +10,13 @@ import com.example.apktask.model.Task
 import com.example.apktask.model.TaskStatus
 import com.example.apktask.util.DateUtils
 import com.example.apktask.util.InputValidator
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import java.util.Calendar
 
 /**
@@ -22,6 +27,13 @@ import java.util.Calendar
  *  - Exposition de la série (streak) pour affichage dans l'en-tête
  *  - Message motivationnel quotidien (déterministe sur la date)
  *  - Persistance via TaskRepository (données chiffrées)
+ *
+ * Architecture StateFlow :
+ *  - [MutableStateFlow] en interne, [StateFlow] exposé en lecture seule (asStateFlow)
+ *  - [tasksUiState] combine _tasks + _editingIds via [combine] → remplace MediatorLiveData
+ *  - SharingStarted.WhileSubscribed(5_000) : le flow reste actif 5s après désinscription,
+ *    évitant un recalcul inutile lors des rotations d'écran
+ *  - [update] pour les mutations atomiques sur Set et List
  *
  * Sécurité :
  *  - Toute entrée passe par InputValidator
@@ -36,50 +48,60 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     val today: String = DateUtils.today()
     val todayReadable: String = DateUtils.todayReadable()
 
-    // ── État interne ─────────────────────────────────────────────────────────
+    // ── État interne (privé, mutable) ────────────────────────────────────────
 
-    private val _tasks = MutableLiveData<List<Task>>(emptyList())
-    private val _editingIds = MutableLiveData<Set<Int>>(emptySet())
+    private val _tasks = MutableStateFlow<List<Task>>(emptyList())
+    private val _editingIds = MutableStateFlow<Set<Int>>(emptySet())
 
-    val isSessionRegistered = MutableLiveData<Boolean>(false)
-    val streak = MutableLiveData<Streak>(Streak())
-    val errorMessage = MutableLiveData<String?>()
+    private val _isSessionRegistered = MutableStateFlow(false)
+    private val _streak = MutableStateFlow(Streak())
+    private val _errorMessage = MutableStateFlow<String?>(null)
+
+    // ── État exposé (lecture seule) ───────────────────────────────────────────
+
+    val isSessionRegistered: StateFlow<Boolean> = _isSessionRegistered.asStateFlow()
+    val streak: StateFlow<Streak> = _streak.asStateFlow()
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     /** Message motivationnel du jour (le même toute la journée). */
     val motivationalMessage: String = pickDailyMotivation()
 
     // ── État UI combiné ──────────────────────────────────────────────────────
 
-    val tasksUiState: LiveData<List<TaskUiState>> =
-        MediatorLiveData<List<TaskUiState>>().also { m ->
-            m.addSource(_tasks) { tasks ->
-                m.value = buildUiState(tasks, _editingIds.value.orEmpty())
-            }
-            m.addSource(_editingIds) { ids ->
-                m.value = buildUiState(_tasks.value.orEmpty(), ids)
-            }
-        }
-
-    private fun buildUiState(tasks: List<Task>, editingIds: Set<Int>): List<TaskUiState> =
-        tasks.map { TaskUiState(task = it, isEditing = it.id in editingIds) }
+    /**
+     * Fusionne les tâches brutes et les IDs en cours d'édition en un seul flux UI.
+     *
+     * Avantage vs MediatorLiveData :
+     *  - Pas de gestion manuelle de addSource/removeSource
+     *  - Opérateur [combine] garanti thread-safe et sans intermédiaire nul
+     *  - WhileSubscribed(5_000) : survive aux rotations sans recalcul immédiat
+     */
+    val tasksUiState: StateFlow<List<TaskUiState>> =
+        combine(_tasks, _editingIds) { tasks, editingIds ->
+            tasks.map { TaskUiState(task = it, isEditing = it.id in editingIds) }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
 
     // ── Initialisation ───────────────────────────────────────────────────────
 
     init {
         _tasks.value = repository.loadTasks(today)
-        isSessionRegistered.value = repository.loadSessionRegistered(today)
-        streak.value = userRepository.loadStreak()
+        _isSessionRegistered.value = repository.loadSessionRegistered(today)
+        _streak.value = userRepository.loadStreak()
     }
 
     // ── Opérations CRUD ──────────────────────────────────────────────────────
 
     fun addTask(title: String) {
         when (val result = InputValidator.validateTitle(title)) {
-            is InputValidator.Result.Failure -> errorMessage.value = result.reason
+            is InputValidator.Result.Failure -> _errorMessage.value = result.reason
             is InputValidator.Result.Success -> {
-                val current = _tasks.value.orEmpty()
+                val current = _tasks.value
                 if (current.count { it.status == TaskStatus.DRAFT } >= MAX_TASKS) {
-                    errorMessage.value = "Maximum $MAX_TASKS tâches autorisées par jour"
+                    _errorMessage.value = "Maximum $MAX_TASKS tâches autorisées par jour"
                     return
                 }
                 val newId = (current.maxOfOrNull { it.id } ?: 0) + 1
@@ -90,35 +112,35 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startEditing(taskId: Int) {
-        _editingIds.value = _editingIds.value.orEmpty() + taskId
+        _editingIds.update { it + taskId }
     }
 
     fun cancelEditing(taskId: Int) {
-        _editingIds.value = _editingIds.value.orEmpty() - taskId
+        _editingIds.update { it - taskId }
     }
 
     fun saveEdit(taskId: Int, rawTitle: String) {
         when (val result = InputValidator.validateTitle(rawTitle)) {
-            is InputValidator.Result.Failure -> errorMessage.value = result.reason
+            is InputValidator.Result.Failure -> _errorMessage.value = result.reason
             is InputValidator.Result.Success -> {
-                _tasks.value = _tasks.value.orEmpty().map { task ->
-                    if (task.id == taskId) task.copy(title = result.sanitized) else task
+                _tasks.update { tasks ->
+                    tasks.map { if (it.id == taskId) it.copy(title = result.sanitized) else it }
                 }
-                _editingIds.value = _editingIds.value.orEmpty() - taskId
+                _editingIds.update { it - taskId }
                 persist()
             }
         }
     }
 
     fun deleteTask(taskId: Int) {
-        _tasks.value = _tasks.value.orEmpty().filter { it.id != taskId }
-        _editingIds.value = _editingIds.value.orEmpty() - taskId
+        _tasks.update { tasks -> tasks.filter { it.id != taskId } }
+        _editingIds.update { it - taskId }
         persist()
     }
 
     fun setStatus(taskId: Int, newStatus: TaskStatus) {
-        _tasks.value = _tasks.value.orEmpty().map { task ->
-            if (task.id == taskId) task.copy(status = newStatus) else task
+        _tasks.update { tasks ->
+            tasks.map { if (it.id == taskId) it.copy(status = newStatus) else it }
         }
         persist()
     }
@@ -126,12 +148,13 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     // ── Gestion de session ────────────────────────────────────────────────────
 
     fun registerSession() {
-        _tasks.value = _tasks.value.orEmpty().map { task ->
-            if (task.status == TaskStatus.DRAFT) task.copy(status = TaskStatus.IN_PROGRESS)
-            else task
+        _tasks.update { tasks ->
+            tasks.map {
+                if (it.status == TaskStatus.DRAFT) it.copy(status = TaskStatus.IN_PROGRESS) else it
+            }
         }
         _editingIds.value = emptySet()
-        isSessionRegistered.value = true
+        _isSessionRegistered.value = true
         persist()
         repository.saveSessionRegistered(today, true)
     }
@@ -140,18 +163,18 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         repository.clearAll()
         _tasks.value = emptyList()
         _editingIds.value = emptySet()
-        isSessionRegistered.value = false
-        streak.value = userRepository.loadStreak()
+        _isSessionRegistered.value = false
+        _streak.value = userRepository.loadStreak()
     }
 
     // ── Utilitaires ──────────────────────────────────────────────────────────
 
     fun clearError() {
-        errorMessage.value = null
+        _errorMessage.value = null
     }
 
     private fun persist() {
-        repository.saveTasks(today, _tasks.value.orEmpty())
+        repository.saveTasks(today, _tasks.value)
     }
 
     /**
@@ -161,16 +184,16 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private fun pickDailyMotivation(): String {
         val dayOfYear = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
         val messages = listOf(
-            "Chaque tâche accomplie vous rapproche de vos objectifs 🎯",
-            "Une journée productive commence par une liste claire 📋",
-            "Petit à petit, l'oiseau fait son nid 🪺",
-            "La discipline aujourd'hui, la liberté demain ✨",
-            "Votre futur moi vous remerciera pour ce que vous faites maintenant 🚀",
-            "Commencez par la tâche la plus difficile — le reste sera facile 💪",
-            "Le succès, c'est la somme de petits efforts répétés chaque jour 🔥",
-            "Vous n'avez pas besoin d'être parfait, juste constant 📈",
-            "Une étape après l'autre — c'est ainsi que l'on avance loin 🏆",
-            "Investir dans vos tâches du jour, c'est investir en vous 💡"
+            "Chaque tâche accomplie vous rapproche de vos objectifs \uD83C\uDFAF",
+            "Une journée productive commence par une liste claire \uD83D\uDCCB",
+            "Petit à petit, l'oiseau fait son nid \uD83E\uDEBA",
+            "La discipline aujourd'hui, la liberté demain \u2728",
+            "Votre futur moi vous remerciera pour ce que vous faites maintenant \uD83D\uDE80",
+            "Commencez par la tâche la plus difficile — le reste sera facile \uD83D\uDCAA",
+            "Le succès, c'est la somme de petits efforts répétés chaque jour \uD83D\uDD25",
+            "Vous n'avez pas besoin d'être parfait, juste constant \uD83D\uDCC8",
+            "Une étape après l'autre — c'est ainsi que l'on avance loin \uD83C\uDFC6",
+            "Investir dans vos tâches du jour, c'est investir en vous \uD83D\uDCA1"
         )
         return messages[dayOfYear % messages.size]
     }
