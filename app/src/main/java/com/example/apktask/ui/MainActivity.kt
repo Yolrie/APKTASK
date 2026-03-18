@@ -13,6 +13,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.apktask.R
 import com.example.apktask.databinding.ActivityMainBinding
@@ -20,17 +23,23 @@ import com.example.apktask.model.TaskStatus
 import com.example.apktask.util.NotificationHelper
 import com.example.apktask.util.WorkScheduler
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.launch
 
 /**
  * Activité principale — rôle limité à :
- *  1. Lier les vues au ViewModel (observe LiveData)
+ *  1. Lier les vues au ViewModel (collecte les StateFlow)
  *  2. Transmettre les actions utilisateur au ViewModel
- *  3. Mettre à jour l'interface en réponse aux LiveData
+ *  3. Mettre à jour l'interface en réponse aux StateFlow
  *
  * Sécurité :
- *  - FLAG_SECURE positionné AVANT setContentView() pour garantir qu'aucune
+ *  - FLAG_SECURE positionné AVANT super.onCreate() pour garantir qu'aucune
  *    frame du contenu ne soit jamais exposée (captures d'écran, switcher,
  *    enregistrement d'écran, Accessibility Services malveillants).
+ *
+ * Collection StateFlow :
+ *  - repeatOnLifecycle(STARTED) : les collectors sont suspendus quand l'activité
+ *    passe en arrière-plan (STOPPED) et reprennent à STARTED — évite les mises
+ *    à jour UI sur une vue non visible, sans fuite mémoire.
  *
  * Aucune logique métier ne doit résider ici.
  */
@@ -48,7 +57,7 @@ class MainActivity : AppCompatActivity() {
      * Launcher pour la demande de permission POST_NOTIFICATIONS (Android 13+).
      * Déclaré ici (avant onCreate) : registerForActivityResult doit être appelé
      * avant que l'activité atteigne STARTED.
-     * Aucune action sur refus : WorkManager gère silencieusement l'absence de permission.
+     * Aucune action sur refus : NotificationWorker vérifie la permission à l'exécution.
      */
     private val notifPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -57,9 +66,9 @@ class MainActivity : AppCompatActivity() {
     // ── Cycle de vie ─────────────────────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // ⚠️ FLAG_SECURE doit impérativement précéder setContentView().
-        // Si posé après, Android peut capturer une première frame non protégée
-        // (visible dans le switcher d'apps ou via screenshot racing).
+        // ⚠️ FLAG_SECURE doit impérativement précéder super.onCreate().
+        // La surface window est allouée dans Activity.attach(), avant onCreate().
+        // Placé ici, aucune frame n'est jamais rendue sans le flag actif.
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
             WindowManager.LayoutParams.FLAG_SECURE
@@ -72,7 +81,7 @@ class MainActivity : AppCompatActivity() {
         setupEdgeToEdge()
         setupRecyclerViews()
         setupClickListeners()
-        observeViewModel()
+        collectViewModelState()
 
         // Canal de notification créé avant tout Worker (idempotent)
         NotificationHelper.createChannel(this)
@@ -130,7 +139,7 @@ class MainActivity : AppCompatActivity() {
         binding.btnAddTask.setOnClickListener {
             val input = binding.etNewTask.text?.toString().orEmpty()
             viewModel.addTask(input)
-            // Le champ se vide seulement si l'ajout a réussi (pas d'erreur observée)
+            // Le champ se vide seulement si l'ajout a réussi (pas d'erreur active)
             if (viewModel.errorMessage.value == null) {
                 binding.etNewTask.text?.clear()
                 hideKeyboard()
@@ -147,41 +156,68 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ── Observation du ViewModel ──────────────────────────────────────────────
+    // ── Collection des StateFlow ──────────────────────────────────────────────
 
-    private fun observeViewModel() {
-        viewModel.tasksUiState.observe(this) { items ->
-            val enCours = items.filter {
-                it.task.status == TaskStatus.DRAFT || it.task.status == TaskStatus.IN_PROGRESS
-            }
-            val terminees = items.filter { it.task.status == TaskStatus.COMPLETED }
-            val annulees = items.filter { it.task.status == TaskStatus.CANCELLED }
+    /**
+     * Collecte les StateFlow du ViewModel avec [repeatOnLifecycle].
+     *
+     * repeatOnLifecycle(STARTED) :
+     *  - Lance les collectors à onStart(), les suspend à onStop()
+     *  - Garantit que l'UI n'est jamais mise à jour en arrière-plan
+     *  - Pas de fuite mémoire : les jobs sont annulés à onDestroy()
+     *  - Les trois [launch] s'exécutent en parallèle dans le même bloc repeat
+     */
+    private fun collectViewModelState() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
 
-            adapterEnCours.submitList(enCours)
-            adapterTerminees.submitList(terminees)
-            adapterAnnulees.submitList(annulees)
+                launch {
+                    viewModel.tasksUiState.collect { items ->
+                        val enCours = items.filter {
+                            it.task.status == TaskStatus.DRAFT ||
+                                    it.task.status == TaskStatus.IN_PROGRESS
+                        }
+                        val terminees = items.filter { it.task.status == TaskStatus.COMPLETED }
+                        val annulees = items.filter { it.task.status == TaskStatus.CANCELLED }
 
-            updateCounters(items)
-            updateProgress(items)
-            updateSectionVisibility(terminees.isNotEmpty(), annulees.isNotEmpty())
-        }
+                        adapterEnCours.submitList(enCours)
+                        adapterTerminees.submitList(terminees)
+                        adapterAnnulees.submitList(annulees)
 
-        viewModel.isSessionRegistered.observe(this) { isRegistered ->
-            // Zone d'ajout de tâche : cachée après enregistrement
-            binding.layoutAddTask.visibility = if (isRegistered) View.GONE else View.VISIBLE
-            binding.btnEnregistrer.visibility = if (isRegistered) View.GONE else View.VISIBLE
-            binding.btnReset.visibility = if (isRegistered) View.VISIBLE else View.GONE
+                        updateCounters(items)
+                        updateProgress(items)
+                        updateSectionVisibility(terminees.isNotEmpty(), annulees.isNotEmpty())
+                    }
+                }
 
-            // Titres de sections : visibles uniquement après enregistrement
-            binding.tvSectionEnCours.visibility = if (isRegistered) View.VISIBLE else View.GONE
-            binding.tvSectionTerminees.visibility = if (isRegistered) View.VISIBLE else View.GONE
-            binding.tvSectionAnnulees.visibility = if (isRegistered) View.VISIBLE else View.GONE
-        }
+                launch {
+                    viewModel.isSessionRegistered.collect { isRegistered ->
+                        // Zone d'ajout de tâche : cachée après enregistrement
+                        binding.layoutAddTask.visibility =
+                            if (isRegistered) View.GONE else View.VISIBLE
+                        binding.btnEnregistrer.visibility =
+                            if (isRegistered) View.GONE else View.VISIBLE
+                        binding.btnReset.visibility =
+                            if (isRegistered) View.VISIBLE else View.GONE
 
-        viewModel.errorMessage.observe(this) { message ->
-            message?.let {
-                Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
-                viewModel.clearError()
+                        // Titres de sections : visibles uniquement après enregistrement
+                        binding.tvSectionEnCours.visibility =
+                            if (isRegistered) View.VISIBLE else View.GONE
+                        binding.tvSectionTerminees.visibility =
+                            if (isRegistered) View.VISIBLE else View.GONE
+                        binding.tvSectionAnnulees.visibility =
+                            if (isRegistered) View.VISIBLE else View.GONE
+                    }
+                }
+
+                launch {
+                    viewModel.errorMessage.collect { message ->
+                        message?.let {
+                            Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
+                            viewModel.clearError()
+                        }
+                    }
+                }
             }
         }
     }
@@ -208,7 +244,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateSectionVisibility(hasTerminees: Boolean, hasAnnulees: Boolean) {
-        val isRegistered = viewModel.isSessionRegistered.value == true
+        val isRegistered = viewModel.isSessionRegistered.value
         binding.tvSectionTerminees.visibility =
             if (isRegistered && hasTerminees) View.VISIBLE else View.GONE
         binding.tvSectionAnnulees.visibility =

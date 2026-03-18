@@ -49,6 +49,7 @@ dependencies {
     implementation libs.recyclerview
     implementation libs.lifecycle.viewmodel.ktx
     implementation libs.lifecycle.livedata.ktx
+    implementation libs.lifecycle.runtime.ktx
     implementation libs.security.crypto
     implementation libs.navigation.fragment.ktx
     implementation libs.navigation.ui.ktx
