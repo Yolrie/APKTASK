@@ -1,0 +1,86 @@
+package com.example.apktask.data.db
+
+import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import com.example.apktask.data.db.dao.FriendDao
+import com.example.apktask.data.db.dao.ProfileDao
+import com.example.apktask.data.db.dao.SessionDao
+import com.example.apktask.data.db.dao.StreakDao
+import com.example.apktask.data.db.dao.TaskDao
+import com.example.apktask.data.db.entity.FriendEntity
+import com.example.apktask.data.db.entity.ProfileEntity
+import com.example.apktask.data.db.entity.SessionEntity
+import com.example.apktask.data.db.entity.StreakEntity
+import com.example.apktask.data.db.entity.TaskEntity
+import net.sqlcipher.database.SupportFactory
+
+/**
+ * Base de données Room chiffrée via SQLCipher.
+ *
+ * Chiffrement :
+ *  - [SupportFactory] injecte SQLCipher comme moteur SQLite sous-jacent.
+ *  - La passphrase est récupérée depuis [DatabaseKeyManager] (double chiffrement :
+ *    SQLCipher AES-256 + Android Keystore AES-256-GCM).
+ *  - La passphrase locale est zerosée après ouverture de la base.
+ *
+ * [allowMainThreadQueries] :
+ *  - Autorisé ici car les appels depuis les ViewModels sont synchrones dans init{}.
+ *  - TODO : migrer vers des appels suspendants (Dispatchers.IO) dans une prochaine
+ *    itération pour supprimer cette tolérance.
+ *
+ * [exportSchema] = false :
+ *  - Le schéma n'est pas exporté dans les assets → pas d'exposition en production.
+ *  - À passer à true si des migrations Room sont ajoutées.
+ *
+ * Singleton thread-safe via double-checked locking (@Volatile + synchronized).
+ */
+@Database(
+    entities = [
+        TaskEntity::class,
+        SessionEntity::class,
+        ProfileEntity::class,
+        StreakEntity::class,
+        FriendEntity::class
+    ],
+    version = 1,
+    exportSchema = false
+)
+abstract class AppDatabase : RoomDatabase() {
+
+    abstract fun taskDao(): TaskDao
+    abstract fun sessionDao(): SessionDao
+    abstract fun profileDao(): ProfileDao
+    abstract fun streakDao(): StreakDao
+    abstract fun friendDao(): FriendDao
+
+    companion object {
+        private const val DB_NAME = "apktask_v3.db"
+
+        @Volatile
+        private var INSTANCE: AppDatabase? = null
+
+        fun getInstance(context: Context): AppDatabase =
+            INSTANCE ?: synchronized(this) {
+                INSTANCE ?: buildDatabase(context.applicationContext).also { INSTANCE = it }
+            }
+
+        private fun buildDatabase(context: Context): AppDatabase {
+            // Récupération de la passphrase (32 octets, déchiffrée depuis EncryptedSharedPreferences)
+            val passphrase = DatabaseKeyManager.getOrCreatePassphrase(context)
+            return try {
+                Room.databaseBuilder(context, AppDatabase::class.java, DB_NAME)
+                    .openHelperFactory(SupportFactory(passphrase))
+                    // Les ViewModels appellent les DAOs de façon synchrone dans init{} —
+                    // à supprimer quand les appels seront migrés en suspend fun.
+                    .allowMainThreadQueries()
+                    .build()
+            } finally {
+                // Zérosage de la copie locale de la passphrase
+                // (SQLCipher a déjà copié la passphrase en interne)
+                passphrase.fill(0)
+            }
+        }
+    }
+}
