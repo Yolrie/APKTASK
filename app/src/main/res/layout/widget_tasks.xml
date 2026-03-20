@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Home screen widget layout.
+  RemoteViews restrictions:
+    - Only a subset of View types allowed (LinearLayout, FrameLayout, TextView, ProgressBar,
+      ImageView, Button — NO MaterialCardView, NO ConstraintLayout with app: attributes).
+    - Background via android:background with a drawable (shape works).
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/widget_background"
+    android:gravity="center">
+
+    <!-- App label -->
+    <TextView
+        android:id="@+id/tvWidgetAppName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/app_name"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:textColor="#9E82D4"
+        android:letterSpacing="0.1" />
+
+    <!-- Progress fraction "X / Y tâches" -->
+    <TextView
+        android:id="@+id/tvWidgetProgress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#1C1B1F"
+        android:text="0 / 0" />
+
+    <!-- Thin progress bar -->
+    <ProgressBar
+        android:id="@+id/progressWidget"
+        style="@android:style/Widget.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:layout_marginTop="8dp"
+        android:max="100"
+        android:progress="0"
+        android:progressTint="#6750A4"
+        android:progressBackgroundTint="#E7E0EC" />
+
+    <!-- Streak (hidden when 0) -->
+    <TextView
+        android:id="@+id/tvWidgetStreak"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textSize="11sp"
+        android:textColor="#6750A4"
+        android:visibility="gone" />
+
+</LinearLayout>
