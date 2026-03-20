@@ -66,6 +66,9 @@ dependencies {
     implementation libs.sqlcipher.android
     implementation libs.sqlite
 
+    // Biometric : authentification empreinte / visage / code PIN
+    implementation libs.biometric
+
     // ── Firebase (décommentez après avoir ajouté google-services.json) ──────
     // implementation platform(libs.firebase.bom)
     // implementation libs.firebase.auth.ktx
