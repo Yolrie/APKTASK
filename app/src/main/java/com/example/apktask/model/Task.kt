@@ -8,13 +8,15 @@ package com.example.apktask.model
  * @param createdAt Timestamp de création (millisecondes)
  * @param status    État actuel de la tâche
  * @param date      Date de la tâche au format YYYY-MM-DD
+ * @param priority  Niveau de priorité (NONE par défaut)
  */
 data class Task(
     val id: Int,
     val title: String,
     val createdAt: Long = System.currentTimeMillis(),
     val status: TaskStatus = TaskStatus.DRAFT,
-    val date: String = ""
+    val date: String = "",
+    val priority: Priority = Priority.NONE
 ) {
     init {
         require(id > 0) { "L'identifiant de la tâche doit être positif" }
