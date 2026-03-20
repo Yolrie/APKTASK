@@ -102,7 +102,7 @@ class UserRepository(
         }
 
     fun removeFriend(userId: String) {
-        local.saveFriends(local.loadFriends().filter { it.userId != userId })
+        local.deleteFriend(userId)
     }
 
     /**
