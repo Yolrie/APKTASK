@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.apktask.data.TaskRepository
 import com.example.apktask.data.UserRepository
+import com.example.apktask.model.Priority
 import com.example.apktask.model.Streak
 import com.example.apktask.model.Task
 import com.example.apktask.model.TaskStatus
@@ -78,7 +79,12 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
      */
     val tasksUiState: StateFlow<List<TaskUiState>> =
         combine(_tasks, _editingIds) { tasks, editingIds ->
-            tasks.map { TaskUiState(task = it, isEditing = it.id in editingIds) }
+            // Sort active tasks by priority descending (HIGH first), then by creation time.
+            // Completed/cancelled tasks keep their natural order at the end.
+            val sorted = tasks.sortedWith(
+                compareByDescending<Task> { it.priority.code }.thenBy { it.createdAt }
+            )
+            sorted.map { TaskUiState(task = it, isEditing = it.id in editingIds) }
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -135,6 +141,27 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteTask(taskId: Int) {
         _tasks.update { tasks -> tasks.filter { it.id != taskId } }
         _editingIds.update { it - taskId }
+        persist()
+    }
+
+    /**
+     * Cycles the priority of a task: NONE → HIGH → MEDIUM → LOW → NONE.
+     * Only active tasks (DRAFT / IN_PROGRESS) can have their priority changed.
+     */
+    fun cyclePriority(taskId: Int) {
+        _tasks.update { tasks ->
+            tasks.map { task ->
+                if (task.id == taskId) {
+                    val next = when (task.priority) {
+                        Priority.NONE -> Priority.HIGH
+                        Priority.HIGH -> Priority.MEDIUM
+                        Priority.MEDIUM -> Priority.LOW
+                        Priority.LOW -> Priority.NONE
+                    }
+                    task.copy(priority = next)
+                } else task
+            }
+        }
         persist()
     }
 
