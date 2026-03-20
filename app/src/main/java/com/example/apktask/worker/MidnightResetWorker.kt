@@ -10,15 +10,14 @@ import com.example.apktask.util.DateUtils
 /**
  * Worker exécuté à minuit pour évaluer le streak puis purger les tâches du jour écoulé.
  *
- * Remplace le déclenchement via [android.content.Intent.ACTION_DATE_CHANGED] :
- *  - Garanti même si l'appareil était éteint (WorkManager persiste après reboot)
- *  - Pas de permission RECEIVE_BOOT_COMPLETED nécessaire (WorkManager l'embarque)
- *  - Retry automatique sur erreur transitoire (disque plein, etc.)
+ * Ordre impératif :
+ *  1. Charger les tâches du jour écoulé (encore présentes en base)
+ *  2. Évaluer le streak avec ces tâches (requiert la liste pour décider COMPLETED ou non)
+ *  3. Purger le jour (clearDay)
  *
  * Sécurité :
- *  - Aucune donnée utilisateur dans les Data d'entrée/sortie
- *  - Utilise [LocalDataSource] singleton (EncryptedSharedPreferences AES-256)
- *  - Streak évalué AVANT la purge : aucune perte de données
+ *  - Aucune donnée utilisateur dans les Data d'entrée/sortie WorkManager
+ *  - LocalDataSource singleton (SQLCipher AES-256)
  *  - applicationContext uniquement : pas de fuite d'Activity
  */
 class MidnightResetWorker(
@@ -28,16 +27,20 @@ class MidnightResetWorker(
 
     override suspend fun doWork(): Result = runCatching {
         val yesterday = DateUtils.yesterday()
+        val local = LocalDataSource.getInstance(applicationContext)
 
-        // 1. Évaluation du streak sur le jour écoulé avant toute suppression
-        UserRepository(applicationContext).evaluateStreakForDay(yesterday)
+        // 1. Charger AVANT suppression : evaluateStreakForDay a besoin de la liste
+        val tasks = local.loadTasks(yesterday)
 
-        // 2. Suppression chiffrée des données du jour écoulé
-        LocalDataSource.getInstance(applicationContext).clearDay(yesterday)
+        // 2. Évaluation du streak (no-op si tasks est vide — jour de repos)
+        UserRepository(applicationContext).evaluateStreakForDay(yesterday, tasks)
+
+        // 3. Suppression atomique tâches + session du jour écoulé (@Transaction dans LocalDataSource)
+        local.clearDay(yesterday)
 
         Result.success()
     }.getOrElse {
-        // Retry si erreur transitoire (I/O, déchiffrement temporairement indisponible)
+        // Retry si erreur transitoire (I/O, SQLCipher temporairement indisponible)
         Result.retry()
     }
 }
