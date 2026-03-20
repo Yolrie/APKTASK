@@ -80,6 +80,15 @@
     <string name="priority_medium">🟡 Moyen</string>
     <string name="priority_high">🔴 Haute</string>
 
+    <!-- ── Biométrie ──────────────────────────────────────────────────────── -->
+    <string name="biometric_section_title">Sécurité</string>
+    <string name="biometric_lock_label">Verrouillage biométrique</string>
+    <string name="biometric_lock_hint_on">L\'application se verrouille en arrière-plan.</string>
+    <string name="biometric_lock_hint_off">Déverrouillez avec votre empreinte ou code.</string>
+    <string name="biometric_lock_unavailable">Aucun capteur biométrique ou code PIN configuré.</string>
+    <string name="biometric_prompt_title">Déverrouiller Do.it</string>
+    <string name="biometric_prompt_subtitle">Utilisez votre empreinte ou code PIN</string>
+
     <!-- ── Erreurs ─────────────────────────────────────────────────────────── -->
     <string name="error_task_empty">La tâche ne peut pas être vide.</string>
     <string name="error_task_too_long">Le titre ne peut pas dépasser 200 caractères.</string>

@@ -11,6 +11,8 @@ import com.example.apktask.model.UserProfile
  * Toujours une seule ligne (id = 1). L'@Insert avec OnConflictStrategy.REPLACE
  * se comporte comme un upsert — pas besoin d'@Update séparé.
  *
+ * [biometricLockEnabled] ajouté en v3 via migration — DEFAULT 0 (désactivé).
+ *
  * Sécurité : userId n'est jamais exposé dans les logs (AppDatabase.exportSchema = false).
  */
 @Entity(tableName = "profile")
@@ -23,7 +25,8 @@ data class ProfileEntity(
     @ColumnInfo(name = "notif_morning_enabled") val notifMorningEnabled: Boolean,
     @ColumnInfo(name = "notif_evening_enabled") val notifEveningEnabled: Boolean,
     @ColumnInfo(name = "notif_morning_hour") val notifMorningHour: Int,
-    @ColumnInfo(name = "notif_evening_hour") val notifEveningHour: Int
+    @ColumnInfo(name = "notif_evening_hour") val notifEveningHour: Int,
+    @ColumnInfo(name = "biometric_lock_enabled") val biometricLockEnabled: Boolean = false
 ) {
     fun toProfile() = UserProfile(
         userId = userId,
@@ -33,7 +36,8 @@ data class ProfileEntity(
         notifMorningEnabled = notifMorningEnabled,
         notifEveningEnabled = notifEveningEnabled,
         notifMorningHour = notifMorningHour,
-        notifEveningHour = notifEveningHour
+        notifEveningHour = notifEveningHour,
+        biometricLockEnabled = biometricLockEnabled
     )
 }
 
@@ -46,5 +50,6 @@ fun UserProfile.toEntity() = ProfileEntity(
     notifMorningEnabled = notifMorningEnabled,
     notifEveningEnabled = notifEveningEnabled,
     notifMorningHour = notifMorningHour,
-    notifEveningHour = notifEveningHour
+    notifEveningHour = notifEveningHour,
+    biometricLockEnabled = biometricLockEnabled
 )

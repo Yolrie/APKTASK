@@ -102,6 +102,16 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         _successMessage.value = "Rappels mis à jour"
     }
 
+    // ── Verrouillage biométrique ──────────────────────────────────────────────
+
+    fun toggleBiometricLock() {
+        val updated = _profile.value.copy(
+            biometricLockEnabled = !_profile.value.biometricLockEnabled
+        )
+        _profile.value = updated
+        userRepository.saveProfile(updated)
+    }
+
     // ── Partage ───────────────────────────────────────────────────────────────
 
     /**

@@ -22,4 +22,16 @@ object Migrations {
             )
         }
     }
+
+    /**
+     * v2 → v3 : Ajout de la colonne `biometric_lock_enabled` dans `profile`.
+     * DEFAULT 0 = verrou biométrique désactivé pour les profils existants.
+     */
+    val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                "ALTER TABLE profile ADD COLUMN biometric_lock_enabled INTEGER NOT NULL DEFAULT 0"
+            )
+        }
+    }
 }
