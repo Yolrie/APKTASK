@@ -3,6 +3,7 @@ package com.example.apktask.data
 import android.content.Context
 import com.example.apktask.model.Task
 import com.example.apktask.util.DateUtils
+import com.example.apktask.widget.TaskWidgetProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -25,7 +26,7 @@ import kotlinx.coroutines.launch
  *  - Ce scope ne doit pas être utilisé pour des opérations critiques (local-first).
  */
 class TaskRepository(
-    context: Context,
+    private val context: Context,
     private val remote: RemoteRepository = MockRemoteRepository()
 ) {
     private val local = LocalDataSource.getInstance(context)
@@ -35,6 +36,8 @@ class TaskRepository(
 
     fun saveTasks(date: String = DateUtils.today(), tasks: List<Task>) {
         local.saveTasks(date, tasks)
+        // Notify the home screen widget of the new data
+        TaskWidgetProvider.refreshAll(context)
         if (remote.isAvailable()) {
             syncScope.launch {
                 runCatching { remote.syncDayTasks(date, tasks) }
