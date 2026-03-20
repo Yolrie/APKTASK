@@ -30,6 +30,12 @@ import com.example.apktask.model.UserProfile
  *  - applicationContext uniquement : pas de fuite d'Activity.
  *  - Aucune donnée utilisateur dans les logs.
  *
+ * Atomicité :
+ *  - [saveTasks], [saveFriends], [clearDay], [clearAll] s'exécutent dans une
+ *    transaction SQLite via [androidx.room.RoomDatabase.runInTransaction].
+ *  - Si l'app crash entre le DELETE et l'INSERT, SQLite annule l'opération entière —
+ *    aucune fenêtre de corruption ou de données partielles.
+ *
  * Note : [AppDatabase.allowMainThreadQueries()] est actif — les appels depuis les
  * init{} des ViewModels sont synchrones. Migration en suspend fun prévue.
  */
@@ -45,8 +51,10 @@ class LocalDataSource private constructor(context: Context) {
     // ── Tâches par date ──────────────────────────────────────────────────────
 
     fun saveTasks(date: String, tasks: List<Task>) {
-        taskDao.deleteForDate(date)
-        taskDao.insertAll(tasks.map { it.toEntity() })
+        db.runInTransaction {
+            taskDao.deleteForDate(date)
+            taskDao.insertAll(tasks.map { it.toEntity() })
+        }
     }
 
     fun loadTasks(date: String): List<Task> =
@@ -61,8 +69,10 @@ class LocalDataSource private constructor(context: Context) {
 
     /** Supprime les tâches et la session d'un jour donné (appelé par MidnightResetWorker). */
     fun clearDay(date: String) {
-        taskDao.deleteForDate(date)
-        sessionDao.deleteForDate(date)
+        db.runInTransaction {
+            taskDao.deleteForDate(date)
+            sessionDao.deleteForDate(date)
+        }
     }
 
     // ── Profil utilisateur ───────────────────────────────────────────────────
@@ -86,8 +96,10 @@ class LocalDataSource private constructor(context: Context) {
     // ── Amis ─────────────────────────────────────────────────────────────────
 
     fun saveFriends(friends: List<FriendProgress>) {
-        friendDao.deleteAll()
-        friendDao.insertAll(friends.map { it.toEntity() })
+        db.runInTransaction {
+            friendDao.deleteAll()
+            friendDao.insertAll(friends.map { it.toEntity() })
+        }
     }
 
     fun loadFriends(): List<FriendProgress> =
@@ -104,8 +116,10 @@ class LocalDataSource private constructor(context: Context) {
      * Ne touche pas au profil, au streak ni aux amis — données de long terme.
      */
     fun clearAll() {
-        taskDao.deleteAll()
-        sessionDao.deleteAll()
+        db.runInTransaction {
+            taskDao.deleteAll()
+            sessionDao.deleteAll()
+        }
     }
 
     // ── Singleton ─────────────────────────────────────────────────────────────
