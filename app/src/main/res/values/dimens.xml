@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Espacements -->
+    <dimen name="space_xs">4dp</dimen>
+    <dimen name="space_sm">8dp</dimen>
+    <dimen name="space_md">16dp</dimen>
+    <dimen name="space_lg">24dp</dimen>
+    <dimen name="space_xl">32dp</dimen>
+
+    <!-- Cartes -->
+    <dimen name="card_corner_radius">16dp</dimen>
+    <dimen name="card_elevation">2dp</dimen>
+    <dimen name="card_margin_vertical">6dp</dimen>
+
+    <!-- Avatar -->
+    <dimen name="avatar_size">48dp</dimen>
+    <dimen name="avatar_size_sm">36dp</dimen>
+    <dimen name="avatar_color_btn">32dp</dimen>
+
+    <!-- Typographie -->
+    <dimen name="text_headline">22sp</dimen>
+    <dimen name="text_title">18sp</dimen>
+    <dimen name="text_body">15sp</dimen>
+    <dimen name="text_label">13sp</dimen>
+    <dimen name="text_caption">11sp</dimen>
+
+    <!-- Items tâche -->
+    <dimen name="task_status_bar_width">5dp</dimen>
+    <dimen name="task_item_min_height">56dp</dimen>
+</resources>

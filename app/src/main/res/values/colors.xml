@@ -1,18 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Couleurs principales -->
-    <color name="primary">#1F2937</color>      <!-- Gris foncé élégant -->
-    <color name="primary_light">#374151</color> <!-- Gris un peu plus clair -->
-    <color name="accent">#3B82F6</color>       <!-- Bleu moderne -->
+    <!-- ── Palette Material Design 3 ──────────────────────────────────────── -->
+    <!-- Primary : violet profond (MD3 Purple 40) -->
+    <color name="md3_primary">#6750A4</color>
+    <color name="md3_on_primary">#FFFFFF</color>
+    <color name="md3_primary_container">#EADDFF</color>
+    <color name="md3_on_primary_container">#21005D</color>
 
-    <!-- Neutres -->
-    <color name="background">#FFFFFF</color>   <!-- Blanc pur -->
-    <color name="surface">#F9FAFB</color>      <!-- Gris très clair (fond cartes) -->
-    <color name="text_primary">#1F2937</color> <!-- Texte foncé -->
-    <color name="text_secondary">#6B7280</color> <!-- Texte gris -->
-    <color name="border">#E5E7EB</color>       <!-- Bordures grises -->
+    <!-- Secondary : mauve neutre -->
+    <color name="md3_secondary">#625B71</color>
+    <color name="md3_on_secondary">#FFFFFF</color>
+    <color name="md3_secondary_container">#E8DEF8</color>
 
-    <!-- Statuts -->
-    <color name="success">#10B981</color>      <!-- Vert (tâche faite) -->
-    <color name="error">#EF4444</color>        <!-- Rouge (erreur/suppression) -->
+    <!-- Tertiary : rose-prune (contraste chaud) -->
+    <color name="md3_tertiary">#7D5260</color>
+    <color name="md3_on_tertiary">#FFFFFF</color>
+    <color name="md3_tertiary_container">#FFD8E4</color>
+
+    <!-- Surface / Background -->
+    <color name="md3_surface">#FFFBFE</color>
+    <color name="md3_surface_variant">#E7E0EC</color>
+    <color name="md3_on_surface">#1C1B1F</color>
+    <color name="md3_on_surface_variant">#49454F</color>
+    <color name="md3_outline">#79747E</color>
+    <color name="md3_outline_variant">#CAC4D0</color>
+
+    <!-- Error -->
+    <color name="md3_error">#B3261E</color>
+    <color name="md3_error_container">#F9DEDC</color>
+    <color name="md3_on_error">#FFFFFF</color>
+
+    <!-- ── Couleurs fonctionnelles (aliases stables pour le code) ──────────── -->
+    <color name="primary">#6750A4</color>
+    <color name="primary_light">#9E82D4</color>
+    <color name="accent">#625B71</color>
+    <color name="background">#FFFBFE</color>
+    <color name="surface">#F7F2FA</color>
+    <color name="text_primary">#1C1B1F</color>
+    <color name="text_secondary">#49454F</color>
+    <color name="border">#CAC4D0</color>
+    <color name="success">#1B873A</color>
+    <color name="error">#B3261E</color>
+
+    <!-- ── 8 couleurs d'avatar ─────────────────────────────────────────────── -->
+    <color name="avatar_0">#6750A4</color>  <!-- Violet -->
+    <color name="avatar_1">#B3261E</color>  <!-- Rouge -->
+    <color name="avatar_2">#1B873A</color>  <!-- Vert -->
+    <color name="avatar_3">#0055CC</color>  <!-- Bleu -->
+    <color name="avatar_4">#E87722</color>  <!-- Orange -->
+    <color name="avatar_5">#625B71</color>  <!-- Mauve -->
+    <color name="avatar_6">#00796B</color>  <!-- Teal -->
+    <color name="avatar_7">#7D5260</color>  <!-- Prune -->
 </resources>
