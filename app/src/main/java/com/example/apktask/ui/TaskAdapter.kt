@@ -126,7 +126,9 @@ class TaskAdapter(
                 TaskStatus.CANCELLED -> R.color.error
                 else -> R.color.text_primary
             }
-            b.tvTaskTitle.setTextColor(ContextCompat.getColor(b.root.context, colorRes))
+            val color = ContextCompat.getColor(b.root.context, colorRes)
+            b.tvTaskTitle.setTextColor(color)
+            b.viewStatusBar.setBackgroundColor(color)
         }
     }
 

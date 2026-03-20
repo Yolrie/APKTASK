@@ -1,50 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Item pour les tâches DRAFT (brouillon) et IN_PROGRESS (en cours).
-  Contient un champ de texte éditable et deux boutons d'action.
+  MD3 card item for DRAFT and IN_PROGRESS tasks.
+  IDs etTaskTitle / btnAction / btnSecondary must stay stable (TaskAdapter binds them).
 -->
-<LinearLayout
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:paddingVertical="6dp"
-    android:gravity="center_vertical">
+    android:layout_marginVertical="@dimen/card_margin_vertical"
+    app:cardCornerRadius="@dimen/card_corner_radius"
+    app:cardElevation="@dimen/card_elevation"
+    app:strokeWidth="0dp">
 
-    <!-- Champ de saisie / affichage du titre -->
-    <androidx.appcompat.widget.AppCompatEditText
-        android:id="@+id/etTaskTitle"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:inputType="textCapSentences|textAutoCorrect"
-        android:maxLength="200"
-        android:maxLines="2"
-        android:background="@android:color/transparent"
-        android:textSize="15sp"
-        android:paddingHorizontal="4dp" />
+        android:orientation="horizontal"
+        android:padding="@dimen/space_sm"
+        android:gravity="center_vertical"
+        android:minHeight="@dimen/task_item_min_height">
 
-    <!-- Bouton principal : Modifier / Valider / Terminé -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnAction"
-        style="@style/Widget.MaterialComponents.Button.TextButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="4dp"
-        android:textSize="12sp"
-        android:minWidth="0dp"
-        android:paddingHorizontal="8dp" />
+        <!-- Status bar accent on left -->
+        <View
+            android:layout_width="@dimen/task_status_bar_width"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="@dimen/space_sm"
+            android:background="?attr/colorPrimary"
+            android:minHeight="@dimen/task_item_min_height" />
 
-    <!-- Bouton secondaire : Supprimer / Annuler -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnSecondary"
-        style="@style/Widget.MaterialComponents.Button.TextButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="2dp"
-        android:textColor="@color/error"
-        android:textSize="12sp"
-        android:minWidth="0dp"
-        android:paddingHorizontal="8dp" />
+        <!-- Task title (editable in edit mode) -->
+        <androidx.appcompat.widget.AppCompatEditText
+            android:id="@+id/etTaskTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:inputType="textCapSentences|textAutoCorrect"
+            android:maxLength="200"
+            android:maxLines="2"
+            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+            android:textColor="?attr/colorOnSurface"
+            android:paddingHorizontal="@dimen/space_xs" />
 
-</LinearLayout>
+        <!-- Primary action: Edit / Validate / Done -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAction"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:paddingHorizontal="@dimen/space_sm"
+            android:textAppearance="@style/TextAppearance.Material3.LabelMedium" />
+
+        <!-- Secondary action: Delete / Cancel -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSecondary"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_xs"
+            android:minWidth="0dp"
+            android:paddingHorizontal="@dimen/space_sm"
+            android:textColor="@color/error"
+            android:textAppearance="@style/TextAppearance.Material3.LabelMedium" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>
