@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  AppWidget provider metadata for the Tasks progress widget.
+
+  minWidth/minHeight: 2×1 cells (each cell ≈ 70dp + 2dp margin on both sides).
+  updatePeriodMillis: 1800000 ms = 30 min (minimum enforced by Android is 30 min).
+  WorkManager triggers extra updates on every task save — the period is a fallback.
+-->
+<appwidget-provider
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="80dp"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/widget_tasks"
+    android:widgetCategory="home_screen"
+    android:resizeMode="horizontal|vertical"
+    android:description="@string/widget_description" />
