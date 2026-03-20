@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/tasksFragment">
+
+    <fragment
+        android:id="@+id/tasksFragment"
+        android:name="com.example.apktask.ui.TasksFragment"
+        android:label="@string/nav_tasks" />
+
+    <fragment
+        android:id="@+id/socialFragment"
+        android:name="com.example.apktask.ui.SocialFragment"
+        android:label="@string/nav_social" />
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.example.apktask.ui.ProfileFragment"
+        android:label="@string/nav_profile" />
+
+</navigation>
