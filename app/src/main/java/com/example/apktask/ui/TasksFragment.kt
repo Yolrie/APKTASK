@@ -70,7 +70,8 @@ class TasksFragment : Fragment() {
             onCancelEdit = { viewModel.cancelEditing(it) },
             onDelete = { viewModel.deleteTask(it) },
             onMarkDone = { viewModel.setStatus(it, TaskStatus.COMPLETED) },
-            onMarkCancelled = { viewModel.setStatus(it, TaskStatus.CANCELLED) }
+            onMarkCancelled = { viewModel.setStatus(it, TaskStatus.CANCELLED) },
+            onCyclePriority = { viewModel.cyclePriority(it) }
         )
         adapterTerminees = TaskAdapter()
         adapterAnnulees = TaskAdapter()

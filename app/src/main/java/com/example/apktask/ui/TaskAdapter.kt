@@ -10,12 +10,13 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.apktask.R
 import com.example.apktask.databinding.ItemTaskActiveBinding
 import com.example.apktask.databinding.ItemTaskDoneBinding
+import com.example.apktask.model.Priority
 import com.example.apktask.model.TaskStatus
 
 /**
  * Adapter RecyclerView gérant 4 états de tâche via 2 types de vues :
  *
- *  TYPE_ACTIVE — tâches DRAFT ou IN_PROGRESS : actions possibles
+ *  TYPE_ACTIVE — tâches DRAFT ou IN_PROGRESS : actions + chip de priorité
  *  TYPE_DONE   — tâches COMPLETED ou CANCELLED : lecture seule, colorées
  *
  * Les callbacks sont nommés explicitement pour que leur usage soit clair
@@ -27,7 +28,8 @@ class TaskAdapter(
     private val onCancelEdit: (taskId: Int) -> Unit = {},
     private val onDelete: (taskId: Int) -> Unit = {},
     private val onMarkDone: (taskId: Int) -> Unit = {},
-    private val onMarkCancelled: (taskId: Int) -> Unit = {}
+    private val onMarkCancelled: (taskId: Int) -> Unit = {},
+    private val onCyclePriority: (taskId: Int) -> Unit = {}
 ) : ListAdapter<TaskUiState, RecyclerView.ViewHolder>(Diff()) {
 
     // ── Types de vues ────────────────────────────────────────────────────────
@@ -63,12 +65,34 @@ class TaskAdapter(
             val task = item.task
             b.etTaskTitle.setText(task.title)
 
+            bindPriorityChip(task.id, task.priority)
+
             when {
                 task.status == TaskStatus.DRAFT && item.isEditing -> bindDraftEditing(task.id)
                 task.status == TaskStatus.DRAFT -> bindDraftViewing(task.id)
                 task.status == TaskStatus.IN_PROGRESS -> bindInProgress(task.id)
                 else -> Unit
             }
+        }
+
+        /**
+         * Binds the priority chip: shows label + emoji, colors the left accent bar,
+         * and sets up the tap-to-cycle listener.
+         */
+        private fun bindPriorityChip(taskId: Int, priority: Priority) {
+            b.chipPriority.text = when (priority) {
+                Priority.NONE -> b.root.context.getString(R.string.priority_none)
+                Priority.LOW -> b.root.context.getString(R.string.priority_low)
+                Priority.MEDIUM -> b.root.context.getString(R.string.priority_medium)
+                Priority.HIGH -> b.root.context.getString(R.string.priority_high)
+            }
+
+            val barColor = priorityColor(priority)
+            b.viewPriorityBar.setBackgroundColor(
+                ContextCompat.getColor(b.root.context, barColor)
+            )
+
+            b.chipPriority.setOnClickListener { onCyclePriority(taskId) }
         }
 
         /** Mode lecture seule avant édition : boutons Modifier / Supprimer. */
@@ -111,6 +135,13 @@ class TaskAdapter(
 
             btnAction.setOnClickListener { onMarkDone(taskId) }
             btnSecondary.setOnClickListener { onMarkCancelled(taskId) }
+        }
+
+        private fun priorityColor(priority: Priority): Int = when (priority) {
+            Priority.HIGH -> R.color.error
+            Priority.MEDIUM -> R.color.accent
+            Priority.LOW -> R.color.primary
+            Priority.NONE -> R.color.border
         }
     }
 
