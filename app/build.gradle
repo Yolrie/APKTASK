@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("kotlin-kapt") // Génération de code Room (annotation processor)
     // alias(libs.plugins.google.services) // Décommentez après setup Firebase
 }
 
@@ -49,12 +50,21 @@ dependencies {
     implementation libs.recyclerview
     implementation libs.lifecycle.viewmodel.ktx
     implementation libs.lifecycle.livedata.ktx
+    implementation libs.lifecycle.runtime.ktx
     implementation libs.security.crypto
     implementation libs.navigation.fragment.ktx
     implementation libs.navigation.ui.ktx
     implementation libs.coroutines.android
     implementation libs.fragment.ktx
     implementation libs.work.runtime.ktx
+
+    // ── Room + SQLCipher ─────────────────────────────────────────────────────
+    implementation libs.room.runtime
+    implementation libs.room.ktx
+    kapt libs.room.compiler
+    // SQLCipher : chiffrement AES-256 au niveau page de la base Room
+    implementation libs.sqlcipher.android
+    implementation libs.sqlite
 
     // ── Firebase (décommentez après avoir ajouté google-services.json) ──────
     // implementation platform(libs.firebase.bom)

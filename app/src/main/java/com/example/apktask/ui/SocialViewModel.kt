@@ -2,11 +2,14 @@ package com.example.apktask.ui
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.apktask.data.UserRepository
 import com.example.apktask.model.FriendProgress
 import com.example.apktask.util.DateUtils
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
@@ -15,26 +18,42 @@ import kotlinx.coroutines.launch
  * Gère la liste des amis et leur progression journalière.
  * En mode mock (sans Firebase) : affiche des amis de démonstration.
  * En mode Firebase : affiche les vrais amis avec leur progression réelle.
+ *
+ * Architecture StateFlow :
+ *  - [friends], [isLoading] : état UI stable → StateFlow
+ *  - [errorMessage], [successMessage] : événements one-shot → StateFlow<String?>
+ *    consommés via clearMessages() depuis la vue après affichage
+ *  - Les coroutines [viewModelScope.launch] restent inchangées : StateFlow est
+ *    thread-safe et peut être mis à jour depuis n'importe quel dispatcher
  */
 class SocialViewModel(application: Application) : AndroidViewModel(application) {
 
     private val userRepository = UserRepository(application)
 
-    val friends = MutableLiveData<List<FriendProgress>>(emptyList())
-    val isLoading = MutableLiveData<Boolean>(false)
-    val errorMessage = MutableLiveData<String?>()
-    val successMessage = MutableLiveData<String?>()
+    // ── État interne (privé, mutable) ────────────────────────────────────────
+
+    private val _friends = MutableStateFlow<List<FriendProgress>>(emptyList())
+    private val _isLoading = MutableStateFlow(false)
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    private val _successMessage = MutableStateFlow<String?>(null)
+
+    // ── État exposé (lecture seule) ───────────────────────────────────────────
+
+    val friends: StateFlow<List<FriendProgress>> = _friends.asStateFlow()
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+    val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
 
     init {
         loadFriends()
     }
 
     fun loadFriends() {
-        isLoading.value = true
+        _isLoading.value = true
         viewModelScope.launch {
             val result = userRepository.getFriendsProgress(DateUtils.today())
-            friends.value = result
-            isLoading.value = false
+            _friends.value = result
+            _isLoading.value = false
         }
     }
 
@@ -45,30 +64,30 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
     fun addFriend(rawCode: String) {
         val code = rawCode.trim().uppercase()
         if (code.length != 8) {
-            errorMessage.value = "Le code ami doit contenir 8 caractères"
+            _errorMessage.value = "Le code ami doit contenir 8 caractères"
             return
         }
         viewModelScope.launch {
-            isLoading.value = true
+            _isLoading.value = true
             userRepository.addFriendByCode(code)
                 .onSuccess { friend ->
-                    successMessage.value = "${friend.displayName} ajouté(e) !"
+                    _successMessage.value = "${friend.displayName} ajouté(e) !"
                     loadFriends()
                 }
                 .onFailure { error ->
-                    errorMessage.value = error.message
+                    _errorMessage.value = error.message
                 }
-            isLoading.value = false
+            _isLoading.value = false
         }
     }
 
     fun removeFriend(userId: String) {
         userRepository.removeFriend(userId)
-        friends.value = friends.value.orEmpty().filter { it.userId != userId }
+        _friends.update { friends -> friends.filter { it.userId != userId } }
     }
 
     fun clearMessages() {
-        errorMessage.value = null
-        successMessage.value = null
+        _errorMessage.value = null
+        _successMessage.value = null
     }
 }
