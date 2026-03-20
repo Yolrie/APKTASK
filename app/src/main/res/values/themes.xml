@@ -1,9 +1,40 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.APKTASK" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+<resources>
+    <style name="Theme.APKTASK" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Couleurs MD3 -->
+        <item name="colorPrimary">@color/md3_primary</item>
+        <item name="colorOnPrimary">@color/md3_on_primary</item>
+        <item name="colorPrimaryContainer">@color/md3_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/md3_on_primary_container</item>
+        <item name="colorSecondary">@color/md3_secondary</item>
+        <item name="colorOnSecondary">@color/md3_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/md3_secondary_container</item>
+        <item name="colorTertiary">@color/md3_tertiary</item>
+        <item name="colorOnTertiary">@color/md3_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/md3_tertiary_container</item>
+        <item name="colorError">@color/md3_error</item>
+        <item name="colorErrorContainer">@color/md3_error_container</item>
+        <item name="colorOnError">@color/md3_on_error</item>
+        <item name="colorSurface">@color/md3_surface</item>
+        <item name="colorOnSurface">@color/md3_on_surface</item>
+        <item name="colorSurfaceVariant">@color/md3_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/md3_on_surface_variant</item>
+        <item name="colorOutline">@color/md3_outline</item>
+        <item name="android:colorBackground">@color/md3_surface</item>
+
+        <!-- Shape tokens MD3 -->
+        <item name="shapeAppearanceSmallComponent">@style/ShapeSmall</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeMedium</item>
+        <item name="shapeAppearanceLargeComponent">@style/ShapeLarge</item>
     </style>
 
-    <style name="Theme.APKTASK" parent="Base.Theme.APKTASK" />
+    <!-- Coins arrondis MD3 -->
+    <style name="ShapeSmall" parent="ShapeAppearance.Material3.SmallComponent">
+        <item name="cornerSize">8dp</item>
+    </style>
+    <style name="ShapeMedium" parent="ShapeAppearance.Material3.MediumComponent">
+        <item name="cornerSize">12dp</item>
+    </style>
+    <style name="ShapeLarge" parent="ShapeAppearance.Material3.LargeComponent">
+        <item name="cornerSize">16dp</item>
+    </style>
 </resources>

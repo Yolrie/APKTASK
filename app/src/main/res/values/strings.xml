@@ -1,12 +1,18 @@
 <resources>
-    <!-- Nom et titres -->
+    <!-- ── Application ────────────────────────────────────────────────────── -->
     <string name="app_name">Do.it</string>
+
+    <!-- ── Navigation ────────────────────────────────────────────────────── -->
+    <string name="nav_tasks">Tâches</string>
+    <string name="nav_social">Social</string>
+    <string name="nav_profile">Profil</string>
+
+    <!-- ── Onglet Tâches ──────────────────────────────────────────────────── -->
     <string name="title_textview">Tâches du jour</string>
+    <string name="hint_task">Ajouter une tâche…</string>
+    <string name="streak_label">%1$d jour(s) de suite %2$s</string>
 
-    <!-- Champs -->
-    <string name="hint_task">Nouvelle tâche…</string>
-
-    <!-- Boutons d'action sur tâche -->
+    <!-- Boutons d\'action sur tâche -->
     <string name="button_add">Ajouter</string>
     <string name="button_edit">Modifier</string>
     <string name="button_validate">Valider</string>
@@ -15,26 +21,61 @@
     <string name="button_done">Terminé</string>
 
     <!-- Boutons globaux -->
-    <string name="button_save">Enregistrer</string>
-    <string name="button_reinitialiser">Réinitialisation</string>
+    <string name="button_save">Enregistrer ma journée</string>
+    <string name="button_reinitialiser">Réinitialiser</string>
+    <string name="button_confirm">Confirmer</string>
 
-    <!-- Sections -->
+    <!-- Sections tâches -->
     <string name="in_progress">En cours</string>
-    <string name="finish">Terminées</string>
+    <string name="finish">Terminées ✅</string>
     <string name="canceled">Annulées</string>
 
-    <!-- Compteurs (format string) -->
-    <string name="counter_en_cours">En cours\u00a0: %d</string>
-    <string name="counter_terminees">Terminées\u00a0: %d</string>
-    <string name="counter_annulees">Annulées\u00a0: %d</string>
+    <!-- Compteurs -->
+    <string name="counter_en_cours">%d en cours</string>
+    <string name="counter_terminees">%d terminées</string>
+    <string name="counter_annulees">%d annulées</string>
+    <string name="counter_en_cours_default">0 en cours</string>
+    <string name="counter_terminees_default">0 terminées</string>
+    <string name="counter_annulees_default">0 annulées</string>
 
-    <!-- Valeurs par défaut des compteurs -->
-    <string name="counter_en_cours_default">En cours\u00a0: 0</string>
-    <string name="counter_terminees_default">Terminées\u00a0: 0</string>
-    <string name="counter_annulees_default">Annulées\u00a0: 0</string>
+    <!-- ── Onglet Social ───────────────────────────────────────────────────── -->
+    <string name="social_title">Amis</string>
+    <string name="add_friend_title">Ajouter un ami</string>
+    <string name="add_friend_message">Entrez le code ami (8 caractères) affiché dans son profil.</string>
+    <string name="hint_friend_code">Code ami (ex: A1B2C3D4)</string>
+    <string name="remove_friend_title">Retirer cet ami ?</string>
+    <string name="remove_friend_confirm">Il ne verra plus votre progression et vice-versa.</string>
+    <string name="social_empty_title">Ajoutez vos premiers amis</string>
+    <string name="social_empty_body">Partagez votre code profil pour vous connecter.</string>
+    <string name="banner_demo_text">🔍 Mode démo — configurez Firebase pour voir de vrais amis</string>
+    <string name="streak_days">🔥 %d j</string>
+    <string name="friend_progress">%1$d / %2$d tâches</string>
+    <string name="chip_demo">Démo</string>
+    <string name="btn_add_friend">+ Ami</string>
+    <string name="btn_refresh">Actualiser</string>
 
-    <!-- Messages d'erreur -->
-    <string name="error_task_empty">La tâche ne peut pas être vide</string>
-    <string name="error_task_too_long">Le titre ne peut pas dépasser 200 caractères</string>
-    <string name="error_task_limit">Maximum 10 tâches autorisées</string>
+    <!-- ── Onglet Profil ───────────────────────────────────────────────────── -->
+    <string name="profile_name_hint">Votre prénom ou pseudo</string>
+    <string name="profile_section_identity">Identité</string>
+    <string name="profile_section_streak">Série</string>
+    <string name="profile_section_visibility">Visibilité</string>
+    <string name="profile_section_notifications">Rappels</string>
+    <string name="profile_friend_code_label">Votre code ami</string>
+    <string name="profile_public_label">Profil public</string>
+    <string name="profile_public_hint_on">Vos amis voient votre progression du jour.</string>
+    <string name="profile_public_hint_off">Votre progression est privée.</string>
+    <string name="streak_record">Record : %d jour(s)</string>
+    <string name="notif_morning_label">Rappel matin</string>
+    <string name="notif_evening_label">Rappel soir</string>
+    <string name="hour_format">%dh</string>
+    <string name="btn_save_name">Enregistrer</string>
+    <string name="btn_copy_code">Copier</string>
+    <string name="btn_save_notifications">Appliquer</string>
+    <string name="btn_share">Partager ma progression</string>
+    <string name="share_progress_title">Partager via…</string>
+
+    <!-- ── Erreurs ─────────────────────────────────────────────────────────── -->
+    <string name="error_task_empty">La tâche ne peut pas être vide.</string>
+    <string name="error_task_too_long">Le titre ne peut pas dépasser 200 caractères.</string>
+    <string name="error_task_limit">Maximum 10 tâches par jour.</string>
 </resources>
