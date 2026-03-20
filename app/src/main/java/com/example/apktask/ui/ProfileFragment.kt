@@ -7,19 +7,18 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.apktask.R
 import com.example.apktask.databinding.FragmentProfileBinding
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.launch
 
 /**
- * Fragment de l'onglet Profil.
+ * Fragment for the Profile tab.
  *
- * Permet de :
- *  - Modifier son nom et choisir sa couleur d'avatar
- *  - Voir et copier son code ami
- *  - Configurer les rappels (heure matin/soir, activé/désactivé)
- *  - Activer/désactiver la visibilité publique
- *  - Partager sa progression du jour
+ * Collects StateFlow from ProfileViewModel using repeatOnLifecycle(STARTED).
  */
 class ProfileFragment : Fragment() {
 
@@ -40,7 +39,7 @@ class ProfileFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setupAvatarColorPicker()
         setupClickListeners()
-        observeViewModel()
+        collectViewModelState()
     }
 
     override fun onDestroyView() {
@@ -48,7 +47,7 @@ class ProfileFragment : Fragment() {
         _binding = null
     }
 
-    // ── Couleurs d'avatar ─────────────────────────────────────────────────────
+    // ── Avatar color picker ───────────────────────────────────────────────────
 
     private val avatarButtons by lazy {
         listOf(
@@ -64,7 +63,7 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    // ── Listeners ─────────────────────────────────────────────────────────────
+    // ── Click listeners ───────────────────────────────────────────────────────
 
     private fun setupClickListeners() {
         binding.btnSaveName.setOnClickListener {
@@ -88,75 +87,99 @@ class ProfileFragment : Fragment() {
             )
         }
 
-        binding.btnShare.setOnClickListener {
-            shareProgress()
+        binding.sliderMorning.addOnChangeListener { _, value, _ ->
+            binding.tvMorningHour.text = getString(R.string.hour_format, value.toInt())
+        }
+
+        binding.sliderEvening.addOnChangeListener { _, value, _ ->
+            binding.tvEveningHour.text = getString(R.string.hour_format, value.toInt())
+        }
+
+        binding.btnShare.setOnClickListener { shareProgress() }
+    }
+
+    // ── StateFlow collection ──────────────────────────────────────────────────
+
+    private fun collectViewModelState() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+
+                launch {
+                    viewModel.profile.collect { profile ->
+                        // Avatar background color
+                        val colorRes = avatarColorRes(profile.avatarColorIndex)
+                        binding.viewAvatarBg.setBackgroundColor(
+                            requireContext().getColor(colorRes)
+                        )
+                        binding.tvAvatarLetter.text = profile.avatarLetter
+
+                        // Color picker selection opacity
+                        avatarButtons.forEachIndexed { i, btn ->
+                            btn.alpha = if (i == profile.avatarColorIndex) 1f else 0.35f
+                        }
+
+                        // Name (only pre-fill if field is empty to avoid overwriting user input)
+                        if (binding.etDisplayName.text.isNullOrEmpty()) {
+                            binding.etDisplayName.setText(profile.displayName)
+                        }
+
+                        // Friend code
+                        binding.tvFriendCode.text = profile.friendCode
+
+                        // Visibility
+                        binding.switchPublic.isChecked = profile.isPublic
+                        binding.tvPublicHint.text = if (profile.isPublic)
+                            getString(R.string.profile_public_hint_on)
+                        else
+                            getString(R.string.profile_public_hint_off)
+
+                        // Notification settings
+                        binding.switchMorning.isChecked = profile.notifMorningEnabled
+                        binding.switchEvening.isChecked = profile.notifEveningEnabled
+                        binding.sliderMorning.value = profile.notifMorningHour.toFloat()
+                        binding.sliderEvening.value = profile.notifEveningHour.toFloat()
+                        binding.tvMorningHour.text =
+                            getString(R.string.hour_format, profile.notifMorningHour)
+                        binding.tvEveningHour.text =
+                            getString(R.string.hour_format, profile.notifEveningHour)
+                    }
+                }
+
+                launch {
+                    viewModel.streak.collect { streak ->
+                        binding.tvStreakValue.text = streak.count.toString()
+                        binding.tvStreakBadge.text = streak.badge
+                        binding.tvStreakRecord.text =
+                            getString(R.string.streak_record, streak.longestEver)
+                    }
+                }
+
+                launch {
+                    viewModel.successMessage.collect { msg ->
+                        msg?.let {
+                            Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
+                            viewModel.clearMessages()
+                        }
+                    }
+                }
+
+                launch {
+                    viewModel.errorMessage.collect { msg ->
+                        msg?.let {
+                            Snackbar.make(binding.root, it, Snackbar.LENGTH_LONG).show()
+                            viewModel.clearMessages()
+                        }
+                    }
+                }
+            }
         }
     }
 
-    // ── Observation ───────────────────────────────────────────────────────────
-
-    private fun observeViewModel() {
-        viewModel.profile.observe(viewLifecycleOwner) { profile ->
-            // Avatar
-            val colorRes = avatarColorRes(profile.avatarColorIndex)
-            binding.tvAvatarLetter.text = profile.avatarLetter
-            binding.viewAvatarBg.setBackgroundColor(
-                requireContext().getColor(colorRes)
-            )
-            // Sélection
-            avatarButtons.forEachIndexed { i, btn ->
-                btn.alpha = if (i == profile.avatarColorIndex) 1f else 0.35f
-            }
-
-            // Nom
-            if (binding.etDisplayName.text.isNullOrEmpty()) {
-                binding.etDisplayName.setText(profile.displayName)
-            }
-
-            // Code ami
-            binding.tvFriendCode.text = profile.friendCode
-
-            // Visibilité
-            binding.switchPublic.isChecked = profile.isPublic
-            binding.tvPublicHint.text = if (profile.isPublic)
-                getString(R.string.profile_public_hint_on)
-            else
-                getString(R.string.profile_public_hint_off)
-
-            // Notifications
-            binding.switchMorning.isChecked = profile.notifMorningEnabled
-            binding.switchEvening.isChecked = profile.notifEveningEnabled
-            binding.sliderMorning.value = profile.notifMorningHour.toFloat()
-            binding.sliderEvening.value = profile.notifEveningHour.toFloat()
-            updateSliderLabels(profile.notifMorningHour, profile.notifEveningHour)
-        }
-
-        viewModel.streak.observe(viewLifecycleOwner) { streak ->
-            binding.tvStreakValue.text = streak.count.toString()
-            binding.tvStreakBadge.text = streak.badge
-            binding.tvStreakRecord.text = getString(R.string.streak_record, streak.longestEver)
-        }
-
-        viewModel.successMessage.observe(viewLifecycleOwner) { msg ->
-            msg?.let {
-                Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
-                viewModel.clearMessages()
-            }
-        }
-
-        viewModel.errorMessage.observe(viewLifecycleOwner) { msg ->
-            msg?.let {
-                Snackbar.make(binding.root, it, Snackbar.LENGTH_LONG).show()
-                viewModel.clearMessages()
-            }
-        }
-    }
-
-    // ── Partage ───────────────────────────────────────────────────────────────
+    // ── Share ─────────────────────────────────────────────────────────────────
 
     private fun shareProgress() {
         val text = viewModel.buildShareText(
-            completedToday = 0, // TODO: récupérer depuis TaskViewModel partagé
+            completedToday = 0, // TODO: inject from shared TaskViewModel
             totalToday = 0
         )
         val intent = Intent(Intent.ACTION_SEND).apply {
@@ -166,12 +189,7 @@ class ProfileFragment : Fragment() {
         startActivity(Intent.createChooser(intent, getString(R.string.share_progress_title)))
     }
 
-    // ── Utilitaires ──────────────────────────────────────────────────────────
-
-    private fun updateSliderLabels(morningHour: Int, eveningHour: Int) {
-        binding.tvMorningHour.text = getString(R.string.hour_format, morningHour)
-        binding.tvEveningHour.text = getString(R.string.hour_format, eveningHour)
-    }
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun avatarColorRes(index: Int): Int = when (index) {
         0 -> R.color.avatar_0
