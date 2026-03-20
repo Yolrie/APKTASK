@@ -74,6 +74,12 @@
     <string name="btn_share">Partager ma progression</string>
     <string name="share_progress_title">Partager via…</string>
 
+    <!-- ── Priorité ───────────────────────────────────────────────────────── -->
+    <string name="priority_none">—</string>
+    <string name="priority_low">🔵 Bas</string>
+    <string name="priority_medium">🟡 Moyen</string>
+    <string name="priority_high">🔴 Haute</string>
+
     <!-- ── Erreurs ─────────────────────────────────────────────────────────── -->
     <string name="error_task_empty">La tâche ne peut pas être vide.</string>
     <string name="error_task_too_long">Le titre ne peut pas dépasser 200 caractères.</string>
