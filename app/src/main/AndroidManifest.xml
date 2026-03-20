@@ -43,6 +43,25 @@
             </intent-filter>
         </receiver>
 
+        <!--
+            Home screen widget receiver.
+            exported="true" required: the launcher (a different app) must be able
+            to send APPWIDGET_UPDATE broadcasts to this receiver.
+            The system enforces that only ACTION_APPWIDGET_UPDATE can target it
+            (no other intents accepted).
+        -->
+        <receiver
+            android:name=".widget.TaskWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_description">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_tasks_info" />
+        </receiver>
+
     </application>
 
 </manifest>
