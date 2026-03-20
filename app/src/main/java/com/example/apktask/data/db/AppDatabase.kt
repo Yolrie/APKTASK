@@ -14,6 +14,7 @@ import com.example.apktask.data.db.entity.ProfileEntity
 import com.example.apktask.data.db.entity.SessionEntity
 import com.example.apktask.data.db.entity.StreakEntity
 import com.example.apktask.data.db.entity.TaskEntity
+import com.example.apktask.data.db.migration.Migrations
 import net.sqlcipher.database.SupportFactory
 
 /**
@@ -44,7 +45,7 @@ import net.sqlcipher.database.SupportFactory
         StreakEntity::class,
         FriendEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -72,6 +73,7 @@ abstract class AppDatabase : RoomDatabase() {
             return try {
                 Room.databaseBuilder(context, AppDatabase::class.java, DB_NAME)
                     .openHelperFactory(SupportFactory(passphrase))
+                    .addMigrations(Migrations.MIGRATION_1_2)
                     // Les ViewModels appellent les DAOs de façon synchrone dans init{} —
                     // à supprimer quand les appels seront migrés en suspend fun.
                     .allowMainThreadQueries()
