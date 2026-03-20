@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.apktask.R
 import com.example.apktask.databinding.FragmentProfileBinding
+import com.example.apktask.util.BiometricHelper
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 
@@ -96,6 +97,20 @@ class ProfileFragment : Fragment() {
         }
 
         binding.btnShare.setOnClickListener { shareProgress() }
+
+        binding.switchBiometric.setOnCheckedChangeListener { _, _ ->
+            if (!BiometricHelper.isAvailable(requireContext())) {
+                // Revert the switch and inform the user
+                binding.switchBiometric.isChecked = viewModel.profile.value.biometricLockEnabled
+                Snackbar.make(
+                    binding.root,
+                    getString(R.string.biometric_lock_unavailable),
+                    Snackbar.LENGTH_LONG
+                ).show()
+                return@setOnCheckedChangeListener
+            }
+            viewModel.toggleBiometricLock()
+        }
     }
 
     // ── StateFlow collection ──────────────────────────────────────────────────
@@ -142,6 +157,13 @@ class ProfileFragment : Fragment() {
                             getString(R.string.hour_format, profile.notifMorningHour)
                         binding.tvEveningHour.text =
                             getString(R.string.hour_format, profile.notifEveningHour)
+
+                        // Biometric lock
+                        binding.switchBiometric.isChecked = profile.biometricLockEnabled
+                        binding.tvBiometricHint.text = if (profile.biometricLockEnabled)
+                            getString(R.string.biometric_lock_hint_on)
+                        else
+                            getString(R.string.biometric_lock_hint_off)
                     }
                 }
 
