@@ -151,6 +151,9 @@ class TasksFragment : Fragment() {
                         updateCounters(items)
                         updateProgress(items)
                         updateSectionVisibility(terminees.isNotEmpty(), annulees.isNotEmpty())
+                        // Empty state: visible only when not registered and no tasks at all
+                        val isEmpty = items.isEmpty() && !viewModel.isSessionRegistered.value
+                        binding.layoutEmpty.visibility = if (isEmpty) View.VISIBLE else View.GONE
                     }
                 }
 
