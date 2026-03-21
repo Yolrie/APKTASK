@@ -10,10 +10,12 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.apktask.R
 import com.example.apktask.databinding.FragmentTasksBinding
 import com.example.apktask.model.TaskStatus
+import com.example.apktask.ui.swipe.SwipeActionCallback
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 
@@ -81,6 +83,7 @@ class TasksFragment : Fragment() {
             adapter = adapterEnCours
             isNestedScrollingEnabled = false
         }
+        attachSwipeGestures()
         binding.rvTerminees.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = adapterTerminees
@@ -111,6 +114,19 @@ class TasksFragment : Fragment() {
         binding.btnReset.setOnClickListener {
             viewModel.resetAll()
         }
+    }
+
+    // ── Swipe gestures ────────────────────────────────────────────────────────
+
+    private fun attachSwipeGestures() {
+        val callback = SwipeActionCallback(
+            context = requireContext(),
+            getItem = { position -> adapterEnCours.currentList[position] },
+            onMarkDone = { taskId -> viewModel.setStatus(taskId, TaskStatus.COMPLETED) },
+            onDelete = { taskId -> viewModel.deleteTask(taskId) },
+            onCancel = { taskId -> viewModel.setStatus(taskId, TaskStatus.CANCELLED) }
+        )
+        ItemTouchHelper(callback).attachToRecyclerView(binding.rvEnCours)
     }
 
     // ── StateFlow collection ──────────────────────────────────────────────────
