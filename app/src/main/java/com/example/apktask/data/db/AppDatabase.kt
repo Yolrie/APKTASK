@@ -6,11 +6,13 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.apktask.data.db.dao.FriendDao
 import com.example.apktask.data.db.dao.ProfileDao
+import com.example.apktask.data.db.dao.RecurringTaskDao
 import com.example.apktask.data.db.dao.SessionDao
 import com.example.apktask.data.db.dao.StreakDao
 import com.example.apktask.data.db.dao.TaskDao
 import com.example.apktask.data.db.entity.FriendEntity
 import com.example.apktask.data.db.entity.ProfileEntity
+import com.example.apktask.data.db.entity.RecurringTaskEntity
 import com.example.apktask.data.db.entity.SessionEntity
 import com.example.apktask.data.db.entity.StreakEntity
 import com.example.apktask.data.db.entity.TaskEntity
@@ -44,9 +46,10 @@ import net.sqlcipher.database.SupportFactory
         SessionEntity::class,
         ProfileEntity::class,
         StreakEntity::class,
-        FriendEntity::class
+        FriendEntity::class,
+        RecurringTaskEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -56,6 +59,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun profileDao(): ProfileDao
     abstract fun streakDao(): StreakDao
     abstract fun friendDao(): FriendDao
+    abstract fun recurringTaskDao(): RecurringTaskDao
 
     companion object {
         private const val DB_NAME = "apktask_v3.db"
@@ -74,7 +78,11 @@ abstract class AppDatabase : RoomDatabase() {
             return try {
                 Room.databaseBuilder(context, AppDatabase::class.java, DB_NAME)
                     .openHelperFactory(SupportFactory(passphrase))
-                    .addMigrations(Migrations.MIGRATION_1_2, Migrations.MIGRATION_2_3)
+                    .addMigrations(
+                        Migrations.MIGRATION_1_2,
+                        Migrations.MIGRATION_2_3,
+                        Migrations.MIGRATION_3_4
+                    )
                     .build()
             } finally {
                 // Zérosage de la copie locale de la passphrase

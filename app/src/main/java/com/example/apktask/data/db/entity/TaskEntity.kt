@@ -1,5 +1,6 @@
 package com.example.apktask.data.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -26,7 +27,8 @@ data class TaskEntity(
     val createdAt: Long,
     val status: Int,
     val date: String,
-    val priority: Int = 0  // Priority.NONE — ajouté en v2 via migration
+    val priority: Int = 0,  // Priority.NONE — ajouté en v2 via migration
+    @ColumnInfo(name = "recurring_task_id") val recurringTaskId: Int? = null  // null = tâche manuelle
 ) {
     fun toTask() = Task(
         id = id,
@@ -34,7 +36,8 @@ data class TaskEntity(
         createdAt = createdAt,
         status = TaskStatus.fromCode(status),
         date = date,
-        priority = Priority.fromCode(priority)
+        priority = Priority.fromCode(priority),
+        recurringTaskId = recurringTaskId
     )
 }
 
@@ -44,5 +47,6 @@ fun Task.toEntity() = TaskEntity(
     createdAt = createdAt,
     status = status.code,
     date = date,
-    priority = priority.code
+    priority = priority.code,
+    recurringTaskId = recurringTaskId
 )
