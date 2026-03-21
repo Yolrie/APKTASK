@@ -74,6 +74,12 @@
     <string name="btn_share">Partager ma progression</string>
     <string name="share_progress_title">Partager via…</string>
 
+    <!-- ── États vides ────────────────────────────────────────────────────── -->
+    <string name="tasks_empty_title">Aucune tâche pour aujourd\'hui</string>
+    <string name="tasks_empty_body">Ajoutez une tâche ci-dessus pour commencer.</string>
+    <string name="task_deleted_msg">Tâche supprimée</string>
+    <string name="undo">Annuler</string>
+
     <!-- ── Priorité ───────────────────────────────────────────────────────── -->
     <string name="priority_none">—</string>
     <string name="priority_low">🔵 Bas</string>
