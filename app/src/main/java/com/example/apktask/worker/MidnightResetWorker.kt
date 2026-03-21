@@ -4,8 +4,10 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.apktask.data.LocalDataSource
+import com.example.apktask.data.TaskRepository
 import com.example.apktask.data.UserRepository
 import com.example.apktask.util.DateUtils
+import com.example.apktask.util.InjectionPrefs
 
 /**
  * Worker exécuté à minuit pour évaluer le streak puis purger les tâches du jour écoulé.
@@ -27,7 +29,9 @@ class MidnightResetWorker(
 
     override suspend fun doWork(): Result = runCatching {
         val yesterday = DateUtils.yesterday()
+        val today = DateUtils.today()
         val local = LocalDataSource.getInstance(applicationContext)
+        val taskRepository = TaskRepository(applicationContext)
 
         // 1. Charger AVANT suppression : evaluateStreakForDay a besoin de la liste
         val tasks = local.loadTasks(yesterday)
@@ -37,6 +41,11 @@ class MidnightResetWorker(
 
         // 3. Suppression atomique tâches + session du jour écoulé (@Transaction dans LocalDataSource)
         local.clearDay(yesterday)
+
+        // 4. Injection des tâches récurrentes pour le nouveau jour.
+        //    InjectionPrefs est mis à jour pour que l'ouverture de l'app ne re-injecte pas.
+        taskRepository.injectDueRecurringTasks(today)
+        InjectionPrefs.setLastInjectionDate(applicationContext, today)
 
         Result.success()
     }.getOrElse {
