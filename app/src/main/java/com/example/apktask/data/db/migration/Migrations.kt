@@ -34,4 +34,30 @@ object Migrations {
             )
         }
     }
+
+    /**
+     * v3 → v4 : tâches récurrentes
+     *  - Nouvelle colonne nullable [tasks.recurring_task_id] : lien vers le template source
+     *  - Nouvelle table [recurring_tasks] : stockage des templates de routines
+     */
+    val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                "ALTER TABLE tasks ADD COLUMN recurring_task_id INTEGER"
+            )
+            database.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS recurring_tasks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    title TEXT NOT NULL,
+                    priority INTEGER NOT NULL DEFAULT 0,
+                    frequency_code INTEGER NOT NULL,
+                    days_bitmask INTEGER NOT NULL DEFAULT 0,
+                    created_at INTEGER NOT NULL DEFAULT 0,
+                    is_active INTEGER NOT NULL DEFAULT 1
+                )
+                """.trimIndent()
+            )
+        }
+    }
 }
