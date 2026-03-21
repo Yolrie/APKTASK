@@ -3,9 +3,11 @@ package com.example.apktask.data
 import android.content.Context
 import androidx.room.withTransaction
 import com.example.apktask.data.db.AppDatabase
+import com.example.apktask.data.db.entity.RecurringTaskEntity
 import com.example.apktask.data.db.entity.SessionEntity
 import com.example.apktask.data.db.entity.toEntity
 import com.example.apktask.model.FriendProgress
+import com.example.apktask.model.RecurringTask
 import com.example.apktask.model.Streak
 import com.example.apktask.model.Task
 import com.example.apktask.model.UserProfile
@@ -33,6 +35,7 @@ class LocalDataSource private constructor(context: Context) {
     private val profileDao = db.profileDao()
     private val streakDao = db.streakDao()
     private val friendDao = db.friendDao()
+    private val recurringTaskDao = db.recurringTaskDao()
 
     // ── Tâches par date ──────────────────────────────────────────────────────
 
@@ -94,6 +97,35 @@ class LocalDataSource private constructor(context: Context) {
     suspend fun deleteFriend(userId: String) {
         friendDao.deleteById(userId)
     }
+
+    // ── Tâches récurrentes (templates) ───────────────────────────────────────
+
+    /** Insère ou remplace un template et retourne son id auto-généré. */
+    suspend fun saveRecurringTask(task: RecurringTask): Int =
+        recurringTaskDao.insert(task.toEntity()).toInt()
+
+    suspend fun loadActiveRecurringTasks(): List<RecurringTask> =
+        recurringTaskDao.getActive().map(RecurringTaskEntity::toRecurringTask)
+
+    suspend fun loadAllRecurringTasks(): List<RecurringTask> =
+        recurringTaskDao.getAll().map(RecurringTaskEntity::toRecurringTask)
+
+    suspend fun updateRecurringTask(task: RecurringTask) =
+        recurringTaskDao.update(task.toEntity())
+
+    /** Soft-delete : désactive le template sans le supprimer de la base. */
+    suspend fun setRecurringTaskActive(id: Int, active: Boolean) =
+        recurringTaskDao.setActive(id, active)
+
+    suspend fun deleteRecurringTask(id: Int) =
+        recurringTaskDao.deleteById(id)
+
+    /**
+     * Retourne `true` si une tâche issue du template [recurringTaskId]
+     * a déjà été injectée pour [date] — verrou anti-doublon.
+     */
+    suspend fun isRecurringTaskInjectedForDate(recurringTaskId: Int, date: String): Boolean =
+        taskDao.hasRecurringTaskForDate(recurringTaskId, date)
 
     // ── Réinitialisation ─────────────────────────────────────────────────────
 
