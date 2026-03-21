@@ -5,15 +5,18 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.apktask.data.UserRepository
 import com.example.apktask.model.Streak
 import com.example.apktask.model.UserProfile
 import com.example.apktask.util.DateUtils
 import com.example.apktask.util.InputValidator
 import com.example.apktask.util.NotificationHelper
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 /**
  * ViewModel de l'onglet Profil.
@@ -35,8 +38,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     // ── État interne (privé, mutable) ────────────────────────────────────────
 
-    private val _profile = MutableStateFlow<UserProfile>(userRepository.loadProfile())
-    private val _streak = MutableStateFlow<Streak>(userRepository.loadStreak())
+    private val _profile = MutableStateFlow<UserProfile>(UserProfile())
+    private val _streak = MutableStateFlow<Streak>(Streak())
     private val _successMessage = MutableStateFlow<String?>(null)
     private val _errorMessage = MutableStateFlow<String?>(null)
 
@@ -47,6 +50,13 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            _profile.value = userRepository.loadProfile()
+            _streak.value = userRepository.loadStreak()
+        }
+    }
+
     // ── Nom ──────────────────────────────────────────────────────────────────
 
     fun updateDisplayName(rawName: String) {
@@ -55,7 +65,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             is InputValidator.Result.Success -> {
                 val updated = _profile.value.copy(displayName = result.sanitized)
                 _profile.value = updated
-                userRepository.saveProfile(updated)
+                viewModelScope.launch(Dispatchers.IO) { userRepository.saveProfile(updated) }
             }
         }
     }
@@ -66,7 +76,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         if (index !in 0..7) return
         val updated = _profile.value.copy(avatarColorIndex = index)
         _profile.value = updated
-        userRepository.saveProfile(updated)
+        viewModelScope.launch(Dispatchers.IO) { userRepository.saveProfile(updated) }
     }
 
     // ── Visibilité ────────────────────────────────────────────────────────────
@@ -74,7 +84,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     fun togglePublic() {
         val updated = _profile.value.copy(isPublic = !_profile.value.isPublic)
         _profile.value = updated
-        userRepository.saveProfile(updated)
+        viewModelScope.launch(Dispatchers.IO) { userRepository.saveProfile(updated) }
     }
 
     // ── Notifications ─────────────────────────────────────────────────────────
@@ -93,7 +103,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             notifEveningHour = eveningHour
         )
         _profile.value = updated
-        userRepository.saveProfile(updated)
+        viewModelScope.launch(Dispatchers.IO) { userRepository.saveProfile(updated) }
 
         NotificationHelper.cancelAll(app)
         if (morningEnabled) NotificationHelper.scheduleMorning(app, morningHour)
@@ -109,7 +119,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             biometricLockEnabled = !_profile.value.biometricLockEnabled
         )
         _profile.value = updated
-        userRepository.saveProfile(updated)
+        viewModelScope.launch(Dispatchers.IO) { userRepository.saveProfile(updated) }
     }
 
     // ── Partage ───────────────────────────────────────────────────────────────
@@ -146,6 +156,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun refreshStreak() {
-        _streak.value = userRepository.loadStreak()
+        viewModelScope.launch(Dispatchers.IO) {
+            _streak.value = userRepository.loadStreak()
+        }
     }
 }

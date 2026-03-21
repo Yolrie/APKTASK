@@ -9,6 +9,7 @@ import com.example.apktask.util.DateUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -82,8 +83,8 @@ class SocialViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun removeFriend(userId: String) {
-        userRepository.removeFriend(userId)
         _friends.update { friends -> friends.filter { it.userId != userId } }
+        viewModelScope.launch(Dispatchers.IO) { userRepository.removeFriend(userId) }
     }
 
     fun clearMessages() {

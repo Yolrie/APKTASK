@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -105,9 +106,11 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     // ── Initialisation ───────────────────────────────────────────────────────
 
     init {
-        _tasks.value = repository.loadTasks(today)
-        _isSessionRegistered.value = repository.loadSessionRegistered(today)
-        _streak.value = userRepository.loadStreak()
+        viewModelScope.launch(Dispatchers.IO) {
+            _tasks.value = repository.loadTasks(today)
+            _isSessionRegistered.value = repository.loadSessionRegistered(today)
+            _streak.value = userRepository.loadStreak()
+        }
     }
 
     // ── Opérations CRUD ──────────────────────────────────────────────────────
@@ -213,16 +216,20 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         }
         _editingIds.value = emptySet()
         _isSessionRegistered.value = true
-        persist()
-        repository.saveSessionRegistered(today, true)
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.saveTasks(today, _tasks.value)
+            repository.saveSessionRegistered(today, true)
+        }
     }
 
     fun resetAll() {
-        repository.clearAll()
         _tasks.value = emptyList()
         _editingIds.value = emptySet()
         _isSessionRegistered.value = false
-        _streak.value = userRepository.loadStreak()
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.clearAll()
+            _streak.value = userRepository.loadStreak()
+        }
     }
 
     // ── Utilitaires ──────────────────────────────────────────────────────────
@@ -232,7 +239,10 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun persist() {
-        repository.saveTasks(today, _tasks.value)
+        val snapshot = _tasks.value
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.saveTasks(today, snapshot)
+        }
     }
 
     /**
