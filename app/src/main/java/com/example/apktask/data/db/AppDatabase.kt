@@ -26,10 +26,11 @@ import net.sqlcipher.database.SupportFactory
  *    SQLCipher AES-256 + Android Keystore AES-256-GCM).
  *  - La passphrase locale est zerosée après ouverture de la base.
  *
- * [allowMainThreadQueries] :
- *  - Autorisé ici car les appels depuis les ViewModels sont synchrones dans init{}.
- *  - TODO : migrer vers des appels suspendants (Dispatchers.IO) dans une prochaine
- *    itération pour supprimer cette tolérance.
+ * Accès DB :
+ *  - Tous les DAOs sont déclarés `suspend fun` — Room génère des implémentations
+ *    coroutine-aware et garantit que les requêtes s'exécutent sur un thread I/O.
+ *  - [allowMainThreadQueries] est intentionnellement absent : tout appel accidentel
+ *    depuis le thread principal lèvera une IllegalStateException détectable en dev.
  *
  * [exportSchema] = false :
  *  - Le schéma n'est pas exporté dans les assets → pas d'exposition en production.
@@ -74,9 +75,6 @@ abstract class AppDatabase : RoomDatabase() {
                 Room.databaseBuilder(context, AppDatabase::class.java, DB_NAME)
                     .openHelperFactory(SupportFactory(passphrase))
                     .addMigrations(Migrations.MIGRATION_1_2, Migrations.MIGRATION_2_3)
-                    // Les ViewModels appellent les DAOs de façon synchrone dans init{} —
-                    // à supprimer quand les appels seront migrés en suspend fun.
-                    .allowMainThreadQueries()
                     .build()
             } finally {
                 // Zérosage de la copie locale de la passphrase
