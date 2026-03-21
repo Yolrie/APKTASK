@@ -190,6 +190,19 @@ class TasksFragment : Fragment() {
                         }
                     }
                 }
+
+                launch {
+                    viewModel.deletedTask.collect { task ->
+                        task ?: return@collect
+                        Snackbar.make(
+                            binding.root,
+                            getString(R.string.task_deleted_msg),
+                            Snackbar.LENGTH_LONG
+                        ).setAction(getString(R.string.undo)) {
+                            viewModel.undoDelete()
+                        }.show()
+                    }
+                }
             }
         }
     }
