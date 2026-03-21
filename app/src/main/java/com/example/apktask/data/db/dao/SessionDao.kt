@@ -10,14 +10,14 @@ import com.example.apktask.data.db.entity.SessionEntity
 interface SessionDao {
 
     @Query("SELECT is_registered FROM sessions WHERE date = :date LIMIT 1")
-    fun isRegistered(date: String): Boolean
+    suspend fun isRegistered(date: String): Boolean
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(session: SessionEntity)
+    suspend fun insert(session: SessionEntity)
 
     @Query("DELETE FROM sessions WHERE date = :date")
-    fun deleteForDate(date: String)
+    suspend fun deleteForDate(date: String)
 
     @Query("DELETE FROM sessions")
-    fun deleteAll()
+    suspend fun deleteAll()
 }

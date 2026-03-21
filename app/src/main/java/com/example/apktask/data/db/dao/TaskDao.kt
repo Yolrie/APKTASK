@@ -16,14 +16,14 @@ import com.example.apktask.data.db.entity.TaskEntity
 interface TaskDao {
 
     @Query("SELECT * FROM tasks WHERE date = :date ORDER BY id ASC")
-    fun getTasksForDate(date: String): List<TaskEntity>
+    suspend fun getTasksForDate(date: String): List<TaskEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertAll(tasks: List<TaskEntity>)
+    suspend fun insertAll(tasks: List<TaskEntity>)
 
     @Query("DELETE FROM tasks WHERE date = :date")
-    fun deleteForDate(date: String)
+    suspend fun deleteForDate(date: String)
 
     @Query("DELETE FROM tasks")
-    fun deleteAll()
+    suspend fun deleteAll()
 }

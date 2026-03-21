@@ -10,14 +10,14 @@ import com.example.apktask.data.db.entity.FriendEntity
 interface FriendDao {
 
     @Query("SELECT * FROM friends ORDER BY display_name ASC")
-    fun getAll(): List<FriendEntity>
+    suspend fun getAll(): List<FriendEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertAll(friends: List<FriendEntity>)
+    suspend fun insertAll(friends: List<FriendEntity>)
 
     @Query("DELETE FROM friends WHERE user_id = :userId")
-    fun deleteById(userId: String)
+    suspend fun deleteById(userId: String)
 
     @Query("DELETE FROM friends")
-    fun deleteAll()
+    suspend fun deleteAll()
 }
