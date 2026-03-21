@@ -18,6 +18,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 /**
@@ -57,6 +60,14 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private val _isSessionRegistered = MutableStateFlow(false)
     private val _streak = MutableStateFlow(Streak())
     private val _errorMessage = MutableStateFlow<String?>(null)
+
+    /**
+     * Holds the most recently deleted task for 5 seconds, enabling undo.
+     * Cleared automatically after [UNDO_TIMEOUT_MS] or when undo is confirmed.
+     */
+    private val _deletedTask = MutableStateFlow<Task?>(null)
+    val deletedTask: StateFlow<Task?> = _deletedTask.asStateFlow()
+    private var undoJob: Job? = null
 
     // ── État exposé (lecture seule) ───────────────────────────────────────────
 
@@ -139,8 +150,28 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun deleteTask(taskId: Int) {
+        val task = _tasks.value.find { it.id == taskId } ?: return
         _tasks.update { tasks -> tasks.filter { it.id != taskId } }
         _editingIds.update { it - taskId }
+        persist()
+        // Hold deleted task for UNDO_TIMEOUT_MS then clear
+        _deletedTask.value = task
+        undoJob?.cancel()
+        undoJob = viewModelScope.launch {
+            delay(UNDO_TIMEOUT_MS)
+            _deletedTask.value = null
+        }
+    }
+
+    /**
+     * Restores the most recently deleted task.
+     * No-op if the undo window has expired.
+     */
+    fun undoDelete() {
+        val task = _deletedTask.value ?: return
+        undoJob?.cancel()
+        _deletedTask.value = null
+        _tasks.update { it + task }
         persist()
     }
 
@@ -227,5 +258,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
     companion object {
         const val MAX_TASKS = 10
+        private const val UNDO_TIMEOUT_MS = 5_000L
     }
 }
