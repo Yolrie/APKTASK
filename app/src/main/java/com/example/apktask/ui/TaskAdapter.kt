@@ -32,6 +32,14 @@ class TaskAdapter(
     private val onCyclePriority: (taskId: Int) -> Unit = {}
 ) : ListAdapter<TaskUiState, RecyclerView.ViewHolder>(Diff()) {
 
+    init {
+        // Stable IDs allow RecyclerView to animate insertions/deletions/moves
+        // correctly when items are added (undo), removed (delete), or reordered (priority).
+        setHasStableIds(true)
+    }
+
+    override fun getItemId(position: Int): Long = getItem(position).task.id.toLong()
+
     // ── Types de vues ────────────────────────────────────────────────────────
 
     override fun getItemViewType(position: Int): Int =

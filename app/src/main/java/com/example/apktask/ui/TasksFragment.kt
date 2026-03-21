@@ -10,6 +10,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.apktask.R
@@ -82,6 +83,13 @@ class TasksFragment : Fragment() {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = adapterEnCours
             isNestedScrollingEnabled = false
+            itemAnimator = DefaultItemAnimator().apply {
+                // Fast but smooth: 200ms add/remove, 150ms move (priority reorder)
+                addDuration = 200
+                removeDuration = 200
+                moveDuration = 150
+                changeDuration = 0  // no flicker on in-place updates
+            }
         }
         attachSwipeGestures()
         binding.rvTerminees.apply {
