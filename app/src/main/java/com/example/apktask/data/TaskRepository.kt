@@ -1,7 +1,9 @@
 package com.example.apktask.data
 
 import android.content.Context
+import com.example.apktask.model.DaySummary
 import com.example.apktask.model.Task
+import com.example.apktask.model.TaskStatus
 import com.example.apktask.util.DateUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -54,6 +56,36 @@ class TaskRepository(
 
     fun clearAll() =
         local.clearAll()
+
+    // ── Bilans journaliers ──────────────────────────────────────────────────
+
+    fun saveDaySummaryFromTasks(date: String, tasks: List<Task>, streakCount: Int) {
+        if (tasks.isEmpty()) return
+        val completed = tasks.count { it.status == TaskStatus.COMPLETED }
+        val cancelled = tasks.count { it.status == TaskStatus.CANCELLED }
+        val total = tasks.size
+        val percent = if (total > 0) (completed * 100) / total else 0
+        val summary = DaySummary(
+            date = date,
+            totalTasks = total,
+            completedTasks = completed,
+            cancelledTasks = cancelled,
+            completionPercent = percent,
+            allDone = completed == total,
+            streakAtDay = streakCount
+        )
+        local.saveDaySummary(summary)
+    }
+
+    fun loadDaySummaries(): List<DaySummary> =
+        local.loadDaySummaries()
+
+    fun loadRecentDaySummaries(limit: Int = 30): List<DaySummary> =
+        local.loadRecentDaySummaries(limit)
+
+    fun daySummaryCount(): Int = local.daySummaryCount()
+    fun averageCompletionPercent(): Int = local.averageCompletionPercent()
+    fun perfectDaysCount(): Int = local.perfectDaysCount()
 
     companion object {
         /**

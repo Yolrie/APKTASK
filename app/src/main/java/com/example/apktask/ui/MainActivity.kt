@@ -30,6 +30,7 @@ import kotlinx.coroutines.launch
  *  1. Lier les vues au ViewModel (collecte les StateFlow)
  *  2. Transmettre les actions utilisateur au ViewModel
  *  3. Mettre à jour l'interface en réponse aux StateFlow
+ *  4. Gérer la navigation entre les onglets Tâches et Historique
  *
  * Sécurité :
  *  - FLAG_SECURE positionné AVANT super.onCreate() pour garantir qu'aucune
@@ -48,27 +49,19 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val viewModel: TaskViewModel by viewModels()
 
-    // Trois adapters pour les trois zones, partageant la même classe.
     private lateinit var adapterEnCours: TaskAdapter
     private lateinit var adapterTerminees: TaskAdapter
     private lateinit var adapterAnnulees: TaskAdapter
 
-    /**
-     * Launcher pour la demande de permission POST_NOTIFICATIONS (Android 13+).
-     * Déclaré ici (avant onCreate) : registerForActivityResult doit être appelé
-     * avant que l'activité atteigne STARTED.
-     * Aucune action sur refus : NotificationWorker vérifie la permission à l'exécution.
-     */
+    private var historyFragment: HistoryFragment? = null
+
     private val notifPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { /* accordée ou refusée : NotificationWorker vérifie la permission au moment de s'exécuter */ }
+    ) { /* NotificationWorker vérifie la permission au moment de s'exécuter */ }
 
     // ── Cycle de vie ─────────────────────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // ⚠️ FLAG_SECURE doit impérativement précéder super.onCreate().
-        // La surface window est allouée dans Activity.attach(), avant onCreate().
-        // Placé ici, aucune frame n'est jamais rendue sans le flag actif.
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
             WindowManager.LayoutParams.FLAG_SECURE
@@ -81,13 +74,11 @@ class MainActivity : AppCompatActivity() {
         setupEdgeToEdge()
         setupRecyclerViews()
         setupClickListeners()
+        setupBottomNavigation()
         collectViewModelState()
 
-        // Canal de notification créé avant tout Worker (idempotent)
         NotificationHelper.createChannel(this)
-        // Planification WorkManager (idempotent — UniquePeriodicWork KEEP/REPLACE)
         WorkScheduler.init(this)
-        // Demande POST_NOTIFICATIONS si nécessaire (Android 13+)
         requestNotificationPermission()
     }
 
@@ -102,7 +93,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerViews() {
-        // Adapter pour les tâches actives — callbacks complets
         adapterEnCours = TaskAdapter(
             onStartEdit = { viewModel.startEditing(it) },
             onSaveEdit = { id, title -> viewModel.saveEdit(id, title) },
@@ -112,7 +102,6 @@ class MainActivity : AppCompatActivity() {
             onMarkCancelled = { viewModel.setStatus(it, TaskStatus.CANCELLED) }
         )
 
-        // Adapters lecture seule pour les zones terminées et annulées
         adapterTerminees = TaskAdapter()
         adapterAnnulees = TaskAdapter()
 
@@ -139,7 +128,6 @@ class MainActivity : AppCompatActivity() {
         binding.btnAddTask.setOnClickListener {
             val input = binding.etNewTask.text?.toString().orEmpty()
             viewModel.addTask(input)
-            // Le champ se vide seulement si l'ajout a réussi (pas d'erreur active)
             if (viewModel.errorMessage.value == null) {
                 binding.etNewTask.text?.clear()
                 hideKeyboard()
@@ -156,17 +144,46 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // ── Navigation inférieure ──────────────────────────────────────────────────
+
+    private fun setupBottomNavigation() {
+        binding.bottomNavigation.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_tasks -> {
+                    showTasksView()
+                    true
+                }
+                R.id.nav_history -> {
+                    showHistoryView()
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun showTasksView() {
+        binding.layoutTasksContent.visibility = View.VISIBLE
+        binding.fragmentContainer.visibility = View.GONE
+        hideKeyboard()
+    }
+
+    private fun showHistoryView() {
+        binding.layoutTasksContent.visibility = View.GONE
+        binding.fragmentContainer.visibility = View.VISIBLE
+        hideKeyboard()
+
+        if (historyFragment == null) {
+            historyFragment = HistoryFragment()
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, historyFragment!!)
+                .commit()
+        }
+        // HistoryFragment refreshes automatically in onResume()
+    }
+
     // ── Collection des StateFlow ──────────────────────────────────────────────
 
-    /**
-     * Collecte les StateFlow du ViewModel avec [repeatOnLifecycle].
-     *
-     * repeatOnLifecycle(STARTED) :
-     *  - Lance les collectors à onStart(), les suspend à onStop()
-     *  - Garantit que l'UI n'est jamais mise à jour en arrière-plan
-     *  - Pas de fuite mémoire : les jobs sont annulés à onDestroy()
-     *  - Les trois [launch] s'exécutent en parallèle dans le même bloc repeat
-     */
     private fun collectViewModelState() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -192,7 +209,6 @@ class MainActivity : AppCompatActivity() {
 
                 launch {
                     viewModel.isSessionRegistered.collect { isRegistered ->
-                        // Zone d'ajout de tâche : cachée après enregistrement
                         binding.layoutAddTask.visibility =
                             if (isRegistered) View.GONE else View.VISIBLE
                         binding.btnEnregistrer.visibility =
@@ -200,7 +216,6 @@ class MainActivity : AppCompatActivity() {
                         binding.btnReset.visibility =
                             if (isRegistered) View.VISIBLE else View.GONE
 
-                        // Titres de sections : visibles uniquement après enregistrement
                         binding.tvSectionEnCours.visibility =
                             if (isRegistered) View.VISIBLE else View.GONE
                         binding.tvSectionTerminees.visibility =
@@ -257,10 +272,6 @@ class MainActivity : AppCompatActivity() {
 
     // ── Utilitaires ───────────────────────────────────────────────────────────
 
-    /**
-     * Demande POST_NOTIFICATIONS sur Android 13+ si la permission n'est pas encore accordée.
-     * Sur les versions antérieures, les notifications ne nécessitent pas de permission runtime.
-     */
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)

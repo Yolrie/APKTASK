@@ -4,6 +4,7 @@ import android.content.Context
 import com.example.apktask.data.db.AppDatabase
 import com.example.apktask.data.db.entity.SessionEntity
 import com.example.apktask.data.db.entity.toEntity
+import com.example.apktask.model.DaySummary
 import com.example.apktask.model.FriendProgress
 import com.example.apktask.model.Streak
 import com.example.apktask.model.Task
@@ -47,6 +48,7 @@ class LocalDataSource private constructor(context: Context) {
     private val profileDao = db.profileDao()
     private val streakDao = db.streakDao()
     private val friendDao = db.friendDao()
+    private val daySummaryDao = db.daySummaryDao()
 
     // ── Tâches par date ──────────────────────────────────────────────────────
 
@@ -108,6 +110,27 @@ class LocalDataSource private constructor(context: Context) {
     fun deleteFriend(userId: String) {
         friendDao.deleteById(userId)
     }
+
+    // ── Bilans journaliers ──────────────────────────────────────────────────
+
+    fun saveDaySummary(summary: DaySummary) {
+        daySummaryDao.insert(summary.toEntity())
+    }
+
+    fun loadDaySummaries(): List<DaySummary> =
+        daySummaryDao.getAll().map { it.toDaySummary() }
+
+    fun loadRecentDaySummaries(limit: Int): List<DaySummary> =
+        daySummaryDao.getRecent(limit).map { it.toDaySummary() }
+
+    fun loadDaySummary(date: String): DaySummary? =
+        daySummaryDao.getForDate(date)?.toDaySummary()
+
+    fun daySummaryCount(): Int = daySummaryDao.count()
+
+    fun averageCompletionPercent(): Int = daySummaryDao.averageCompletionPercent()
+
+    fun perfectDaysCount(): Int = daySummaryDao.countPerfectDays()
 
     // ── Réinitialisation ─────────────────────────────────────────────────────
 

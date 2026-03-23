@@ -37,4 +37,27 @@
     <string name="error_task_empty">La tâche ne peut pas être vide</string>
     <string name="error_task_too_long">Le titre ne peut pas dépasser 200 caractères</string>
     <string name="error_task_limit">Maximum 10 tâches autorisées</string>
+
+    <!-- Navigation inférieure -->
+    <string name="nav_tasks">Tâches</string>
+    <string name="nav_history">Historique</string>
+
+    <!-- Onglet Historique -->
+    <string name="history_title">Historique</string>
+    <string name="history_current_streak">Série actuelle</string>
+    <string name="history_record">Record</string>
+    <string name="history_streak_value">%d jour(s)</string>
+    <string name="history_streak_record_value">%d jour(s)</string>
+    <string name="history_stat_days">Jours suivis</string>
+    <string name="history_stat_avg">Moyenne</string>
+    <string name="history_stat_perfect">Jours parfaits</string>
+    <string name="history_stat_completed">Accomplies</string>
+    <string name="history_recent_days">30 derniers jours</string>
+    <string name="history_empty_title">Pas encore d\'historique</string>
+    <string name="history_empty_message">Votre historique de productivité apparaîtra ici après votre première journée de tâches.</string>
+    <string name="history_percent">%d %%</string>
+    <string name="history_completed_count">%d terminée(s)</string>
+    <string name="history_cancelled_count">%d annulée(s)</string>
+    <string name="history_total_count">/ %d tâches</string>
+    <string name="history_streak_days">%d j.</string>
 </resources>
