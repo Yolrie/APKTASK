@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.kapt)
+    // kotlin-android not needed: AGP 9.0 has built-in Kotlin support
+    alias(libs.plugins.ksp)
     // alias(libs.plugins.google.services) // Décommentez après setup Firebase
 }
 
@@ -36,8 +36,12 @@ android {
         targetCompatibility JavaVersion.VERSION_11
     }
 
-    kotlinOptions {
-        jvmTarget = '11'
+    // kotlinOptions migrated to kotlin.compilerOptions for AGP 9.0+
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
     }
 }
 
@@ -61,7 +65,7 @@ dependencies {
     // ── Room + SQLCipher ─────────────────────────────────────────────────────
     implementation libs.room.runtime
     implementation libs.room.ktx
-    kapt libs.room.compiler
+    ksp libs.room.compiler
     // SQLCipher : chiffrement AES-256 au niveau page de la base Room
     implementation libs.sqlcipher.android
     implementation libs.sqlite
