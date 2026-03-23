@@ -85,9 +85,16 @@ class MainActivity : AppCompatActivity() {
     // ── Configuration initiale ────────────────────────────────────────────────
 
     private fun setupEdgeToEdge() {
+        // Root view: top + sides only — no bottom padding (bottom nav handles it)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            v.setPadding(bars.left, bars.top, bars.right, 0)
+            insets
+        }
+        // Bottom nav: absorbs system nav bar inset as its own bottom padding
+        ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavigation) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(0, 0, 0, bars.bottom)
             insets
         }
     }
@@ -160,6 +167,8 @@ class MainActivity : AppCompatActivity() {
                 else -> false
             }
         }
+        // Default: select Tasks tab on launch
+        binding.bottomNavigation.selectedItemId = R.id.nav_tasks
     }
 
     private fun showTasksView() {
