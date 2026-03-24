@@ -7,11 +7,15 @@ import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.apktask.R
 import com.example.apktask.databinding.FragmentTasksBinding
 import com.example.apktask.model.TaskStatus
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.launch
 
 /**
  * Fragment de l'onglet Tâches.
@@ -112,42 +116,55 @@ class TasksFragment : Fragment() {
     // ── Observation ───────────────────────────────────────────────────────────
 
     private fun observeViewModel() {
-        viewModel.tasksUiState.observe(viewLifecycleOwner) { items ->
-            val enCours = items.filter {
-                it.task.status == TaskStatus.DRAFT || it.task.status == TaskStatus.IN_PROGRESS
-            }
-            val terminees = items.filter { it.task.status == TaskStatus.COMPLETED }
-            val annulees = items.filter { it.task.status == TaskStatus.CANCELLED }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
 
-            adapterEnCours.submitList(enCours)
-            adapterTerminees.submitList(terminees)
-            adapterAnnulees.submitList(annulees)
+                launch {
+                    viewModel.tasksUiState.collect { items ->
+                        val enCours = items.filter {
+                            it.task.status == TaskStatus.DRAFT || it.task.status == TaskStatus.IN_PROGRESS
+                        }
+                        val terminees = items.filter { it.task.status == TaskStatus.COMPLETED }
+                        val annulees = items.filter { it.task.status == TaskStatus.CANCELLED }
 
-            updateCounters(items)
-            updateProgress(items)
-            updateSectionVisibility(terminees.isNotEmpty(), annulees.isNotEmpty())
-        }
+                        adapterEnCours.submitList(enCours)
+                        adapterTerminees.submitList(terminees)
+                        adapterAnnulees.submitList(annulees)
 
-        viewModel.isSessionRegistered.observe(viewLifecycleOwner) { isRegistered ->
-            binding.layoutAddTask.visibility = if (isRegistered) View.GONE else View.VISIBLE
-            binding.btnEnregistrer.visibility = if (isRegistered) View.GONE else View.VISIBLE
-            binding.btnReset.visibility = if (isRegistered) View.VISIBLE else View.GONE
-            binding.tvSectionEnCours.visibility = if (isRegistered) View.VISIBLE else View.GONE
-        }
+                        updateCounters(items)
+                        updateProgress(items)
+                        updateSectionVisibility(terminees.isNotEmpty(), annulees.isNotEmpty())
+                    }
+                }
 
-        viewModel.streak.observe(viewLifecycleOwner) { streak ->
-            if (streak.count > 0) {
-                binding.tvStreak.visibility = View.VISIBLE
-                binding.tvStreak.text = getString(R.string.streak_label, streak.count, streak.badge)
-            } else {
-                binding.tvStreak.visibility = View.GONE
-            }
-        }
+                launch {
+                    viewModel.isSessionRegistered.collect { isRegistered ->
+                        binding.layoutAddTask.visibility = if (isRegistered) View.GONE else View.VISIBLE
+                        binding.btnEnregistrer.visibility = if (isRegistered) View.GONE else View.VISIBLE
+                        binding.btnReset.visibility = if (isRegistered) View.VISIBLE else View.GONE
+                        binding.tvSectionEnCours.visibility = if (isRegistered) View.VISIBLE else View.GONE
+                    }
+                }
 
-        viewModel.errorMessage.observe(viewLifecycleOwner) { msg ->
-            msg?.let {
-                Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
-                viewModel.clearError()
+                launch {
+                    viewModel.streak.collect { streak ->
+                        if (streak.count > 0) {
+                            binding.tvStreak.visibility = View.VISIBLE
+                            binding.tvStreak.text = getString(R.string.streak_label, streak.count, streak.badge)
+                        } else {
+                            binding.tvStreak.visibility = View.GONE
+                        }
+                    }
+                }
+
+                launch {
+                    viewModel.errorMessage.collect { msg ->
+                        msg?.let {
+                            Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
+                            viewModel.clearError()
+                        }
+                    }
+                }
             }
         }
     }

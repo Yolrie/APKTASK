@@ -7,9 +7,13 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.apktask.R
 import com.example.apktask.databinding.FragmentProfileBinding
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.launch
 
 /**
  * Fragment de l'onglet Profil.
@@ -96,58 +100,71 @@ class ProfileFragment : Fragment() {
     // ── Observation ───────────────────────────────────────────────────────────
 
     private fun observeViewModel() {
-        viewModel.profile.observe(viewLifecycleOwner) { profile ->
-            // Avatar
-            val colorRes = avatarColorRes(profile.avatarColorIndex)
-            binding.tvAvatarLetter.text = profile.avatarLetter
-            binding.viewAvatarBg.setBackgroundColor(
-                requireContext().getColor(colorRes)
-            )
-            // Sélection
-            avatarButtons.forEachIndexed { i, btn ->
-                btn.alpha = if (i == profile.avatarColorIndex) 1f else 0.35f
-            }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
 
-            // Nom
-            if (binding.etDisplayName.text.isNullOrEmpty()) {
-                binding.etDisplayName.setText(profile.displayName)
-            }
+                launch {
+                    viewModel.profile.collect { profile ->
+                        // Avatar
+                        val colorRes = avatarColorRes(profile.avatarColorIndex)
+                        binding.tvAvatarLetter.text = profile.avatarLetter
+                        binding.viewAvatarBg.setBackgroundColor(
+                            requireContext().getColor(colorRes)
+                        )
+                        // Sélection
+                        avatarButtons.forEachIndexed { i, btn ->
+                            btn.alpha = if (i == profile.avatarColorIndex) 1f else 0.35f
+                        }
 
-            // Code ami
-            binding.tvFriendCode.text = profile.friendCode
+                        // Nom
+                        if (binding.etDisplayName.text.isNullOrEmpty()) {
+                            binding.etDisplayName.setText(profile.displayName)
+                        }
 
-            // Visibilité
-            binding.switchPublic.isChecked = profile.isPublic
-            binding.tvPublicHint.text = if (profile.isPublic)
-                getString(R.string.profile_public_hint_on)
-            else
-                getString(R.string.profile_public_hint_off)
+                        // Code ami
+                        binding.tvFriendCode.text = profile.friendCode
 
-            // Notifications
-            binding.switchMorning.isChecked = profile.notifMorningEnabled
-            binding.switchEvening.isChecked = profile.notifEveningEnabled
-            binding.sliderMorning.value = profile.notifMorningHour.toFloat()
-            binding.sliderEvening.value = profile.notifEveningHour.toFloat()
-            updateSliderLabels(profile.notifMorningHour, profile.notifEveningHour)
-        }
+                        // Visibilité
+                        binding.switchPublic.isChecked = profile.isPublic
+                        binding.tvPublicHint.text = if (profile.isPublic)
+                            getString(R.string.profile_public_hint_on)
+                        else
+                            getString(R.string.profile_public_hint_off)
 
-        viewModel.streak.observe(viewLifecycleOwner) { streak ->
-            binding.tvStreakValue.text = streak.count.toString()
-            binding.tvStreakBadge.text = streak.badge
-            binding.tvStreakRecord.text = getString(R.string.streak_record, streak.longestEver)
-        }
+                        // Notifications
+                        binding.switchMorning.isChecked = profile.notifMorningEnabled
+                        binding.switchEvening.isChecked = profile.notifEveningEnabled
+                        binding.sliderMorning.value = profile.notifMorningHour.toFloat()
+                        binding.sliderEvening.value = profile.notifEveningHour.toFloat()
+                        updateSliderLabels(profile.notifMorningHour, profile.notifEveningHour)
+                    }
+                }
 
-        viewModel.successMessage.observe(viewLifecycleOwner) { msg ->
-            msg?.let {
-                Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
-                viewModel.clearMessages()
-            }
-        }
+                launch {
+                    viewModel.streak.collect { streak ->
+                        binding.tvStreakValue.text = streak.count.toString()
+                        binding.tvStreakBadge.text = streak.badge
+                        binding.tvStreakRecord.text = getString(R.string.streak_record, streak.longestEver)
+                    }
+                }
 
-        viewModel.errorMessage.observe(viewLifecycleOwner) { msg ->
-            msg?.let {
-                Snackbar.make(binding.root, it, Snackbar.LENGTH_LONG).show()
-                viewModel.clearMessages()
+                launch {
+                    viewModel.successMessage.collect { msg ->
+                        msg?.let {
+                            Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
+                            viewModel.clearMessages()
+                        }
+                    }
+                }
+
+                launch {
+                    viewModel.errorMessage.collect { msg ->
+                        msg?.let {
+                            Snackbar.make(binding.root, it, Snackbar.LENGTH_LONG).show()
+                            viewModel.clearMessages()
+                        }
+                    }
+                }
             }
         }
     }

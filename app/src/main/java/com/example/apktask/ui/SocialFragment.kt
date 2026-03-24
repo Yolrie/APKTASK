@@ -6,12 +6,16 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.apktask.R
 import com.example.apktask.databinding.FragmentSocialBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
+import kotlinx.coroutines.launch
 
 /**
  * Fragment de l'onglet Social.
@@ -84,30 +88,43 @@ class SocialFragment : Fragment() {
     // ── Observation ───────────────────────────────────────────────────────────
 
     private fun observeViewModel() {
-        viewModel.friends.observe(viewLifecycleOwner) { friends ->
-            friendsAdapter.submitList(friends)
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
 
-            val hasMock = friends.any { it.isMock }
-            binding.bannerDemo.visibility = if (hasMock) View.VISIBLE else View.GONE
-            binding.layoutEmpty.visibility =
-                if (friends.isEmpty() && !hasMock) View.VISIBLE else View.GONE
-        }
+                launch {
+                    viewModel.friends.collect { friends ->
+                        friendsAdapter.submitList(friends)
 
-        viewModel.isLoading.observe(viewLifecycleOwner) { loading ->
-            binding.progressLoading.visibility = if (loading) View.VISIBLE else View.GONE
-        }
+                        val hasMock = friends.any { it.isMock }
+                        binding.bannerDemo.visibility = if (hasMock) View.VISIBLE else View.GONE
+                        binding.layoutEmpty.visibility =
+                            if (friends.isEmpty() && !hasMock) View.VISIBLE else View.GONE
+                    }
+                }
 
-        viewModel.successMessage.observe(viewLifecycleOwner) { msg ->
-            msg?.let {
-                Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
-                viewModel.clearMessages()
-            }
-        }
+                launch {
+                    viewModel.isLoading.collect { loading ->
+                        binding.progressLoading.visibility = if (loading) View.VISIBLE else View.GONE
+                    }
+                }
 
-        viewModel.errorMessage.observe(viewLifecycleOwner) { msg ->
-            msg?.let {
-                Snackbar.make(binding.root, it, Snackbar.LENGTH_LONG).show()
-                viewModel.clearMessages()
+                launch {
+                    viewModel.successMessage.collect { msg ->
+                        msg?.let {
+                            Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
+                            viewModel.clearMessages()
+                        }
+                    }
+                }
+
+                launch {
+                    viewModel.errorMessage.collect { msg ->
+                        msg?.let {
+                            Snackbar.make(binding.root, it, Snackbar.LENGTH_LONG).show()
+                            viewModel.clearMessages()
+                        }
+                    }
+                }
             }
         }
     }
