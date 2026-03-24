@@ -62,7 +62,7 @@
     <string name="history_streak_days">%d j.</string>
 
     <!-- Streak -->
-    <string name="streak_label">%d jour(s) %s</string>
+    <string name="streak_label">%1$d jour(s) %2$s</string>
     <string name="streak_days">%d j.</string>
     <string name="streak_record">Record : %d jour(s)</string>
 
