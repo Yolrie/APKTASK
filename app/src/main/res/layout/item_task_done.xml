@@ -18,6 +18,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:textSize="15sp"
+        android:textColor="@color/text_secondary"
         android:maxLines="2" />
 
 </LinearLayout>
