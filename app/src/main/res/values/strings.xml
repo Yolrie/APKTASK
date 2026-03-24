@@ -60,4 +60,24 @@
     <string name="history_cancelled_count">%d annulée(s)</string>
     <string name="history_total_count">/ %d tâches</string>
     <string name="history_streak_days">%d j.</string>
+
+    <!-- Streak -->
+    <string name="streak_label">%d jour(s) %s</string>
+    <string name="streak_days">%d j.</string>
+    <string name="streak_record">Record : %d jour(s)</string>
+
+    <!-- Social -->
+    <string name="friend_progress">%d / %d</string>
+    <string name="hint_friend_code">Code ami</string>
+    <string name="add_friend_title">Ajouter un ami</string>
+    <string name="add_friend_message">Entrez le code ami à 8 caractères</string>
+    <string name="remove_friend_title">Supprimer cet ami ?</string>
+    <string name="remove_friend_confirm">Cet ami sera retiré de votre liste.</string>
+    <string name="button_confirm">Confirmer</string>
+
+    <!-- Profil -->
+    <string name="profile_public_hint_on">Vos amis peuvent voir votre progression</string>
+    <string name="profile_public_hint_off">Votre progression est privée</string>
+    <string name="share_progress_title">Partager ma progression</string>
+    <string name="hour_format">%dh00</string>
 </resources>
