@@ -4,29 +4,13 @@ import android.content.Context
 import com.example.apktask.model.RecurringTask
 import com.example.apktask.util.DateUtils
 
-/**
- * Repository des tâches récurrentes (templates de routines).
- *
- * Responsabilités :
- *  - CRUD sur les templates [RecurringTask]
- *  - Calcul des templates dus pour une date donnée ([getDueForDate])
- *
- * Anti-doublon à deux niveaux :
- *  1. [getDueForDate] filtre les templates dont l'injection du jour est déjà en base
- *     (via [LocalDataSource.isRecurringTaskInjectedForDate] → TaskDao.hasRecurringTaskForDate).
- *  2. [com.example.apktask.util.InjectionPrefs] évite même d'appeler [getDueForDate]
- *     si l'injection du jour a déjà eu lieu (vérification rapide en SharedPreferences).
- */
+/** Repository des tâches récurrentes — CRUD sur les templates et calcul des templates dus pour une date. */
 class RecurringTaskRepository(context: Context) {
 
     private val local = LocalDataSource.getInstance(context)
 
     // ── CRUD ─────────────────────────────────────────────────────────────────
 
-    /**
-     * Insère un nouveau template et retourne son id auto-généré.
-     * Si [task.id] == 0, Room génère l'id via AUTOINCREMENT.
-     */
     suspend fun add(task: RecurringTask): Int = local.saveRecurringTask(task)
 
     suspend fun getActive(): List<RecurringTask> = local.loadActiveRecurringTasks()
@@ -47,14 +31,13 @@ class RecurringTaskRepository(context: Context) {
     // ── Injection ────────────────────────────────────────────────────────────
 
     /**
-     * Retourne les templates actifs dont :
-     *  - La règle [RecurringTask.rule] est satisfaite pour [date]
-     *  - Aucune tâche issue de ce template n'existe déjà pour [date] en base
-     *
-     * @param date Date ISO-8601 (yyyy-MM-dd), aujourd'hui par défaut.
+     * Retourne les templates actifs satisfaisant [date] et non encore injectés.
+     * 2 requêtes DB (getActive + getInjectedRecurringTaskIds) quelle que soit la taille du catalogue.
      */
-    suspend fun getDueForDate(date: String = DateUtils.today()): List<RecurringTask> =
-        getActive().filter { task ->
-            task.rule.isDueOn(date) && !local.isRecurringTaskInjectedForDate(task.id, date)
+    suspend fun getDueForDate(date: String = DateUtils.today()): List<RecurringTask> {
+        val alreadyInjected = local.loadInjectedRecurringTaskIds(date)
+        return getActive().filter { task ->
+            task.rule.isDueOn(date) && task.id !in alreadyInjected
         }
+    }
 }

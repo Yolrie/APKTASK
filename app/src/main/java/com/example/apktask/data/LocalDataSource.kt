@@ -120,12 +120,9 @@ class LocalDataSource private constructor(context: Context) {
     suspend fun deleteRecurringTask(id: Int) =
         recurringTaskDao.deleteById(id)
 
-    /**
-     * Retourne `true` si une tâche issue du template [recurringTaskId]
-     * a déjà été injectée pour [date] — verrou anti-doublon.
-     */
-    suspend fun isRecurringTaskInjectedForDate(recurringTaskId: Int, date: String): Boolean =
-        taskDao.hasRecurringTaskForDate(recurringTaskId, date)
+    /** Retourne les IDs des templates récurrents déjà injectés pour [date] — verrou anti-doublon. */
+    suspend fun loadInjectedRecurringTaskIds(date: String): Set<Int> =
+        taskDao.getInjectedRecurringTaskIdsForDate(date).toSet()
 
     // ── Réinitialisation ─────────────────────────────────────────────────────
 

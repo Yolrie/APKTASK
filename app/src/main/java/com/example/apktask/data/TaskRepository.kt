@@ -12,32 +12,29 @@ import kotlinx.coroutines.launch
 
 /**
  * Façade pour les opérations sur les tâches.
+ * Toutes les fonctions sont suspend — les appelants lancent depuis viewModelScope ou syncScope.
  *
- * Toutes les fonctions sont suspend — les appelants lancent depuis
- * viewModelScope ou syncScope selon les besoins.
- *
- * Injection des tâches récurrentes :
- *  - [loadTasks] déclenche [injectDueRecurringTasksIfNeeded] lorsque [date] == aujourd'hui.
- *  - [injectDueRecurringTasksIfNeeded] est protégé par [InjectionPrefs] (vérification rapide)
- *    et par [LocalDataSource.isRecurringTaskInjectedForDate] (vérification Room définitive).
- *  - [injectDueRecurringTasks] est aussi appelé directement par [MidnightResetWorker]
- *    lors du reset minuit pour pré-peupler la nouvelle journée.
+ * Injection des tâches récurrentes : voir [InjectionPrefs] pour la stratégie anti-doublon.
  */
 class TaskRepository(
     private val context: Context,
     private val remote: RemoteRepository = MockRemoteRepository()
 ) {
     private val local = LocalDataSource.getInstance(context)
+    private val recurringRepo = RecurringTaskRepository(context)
 
     // ── Tâches par date ──────────────────────────────────────────────────────
 
     /**
-     * Charge les tâches du [date].
-     * Si [date] == aujourd'hui et que l'injection n'a pas encore eu lieu,
-     * les tâches récurrentes dues sont automatiquement insérées avant le retour.
+     * Charge les tâches de [date].
+     * Pour aujourd'hui, les tâches récurrentes dues sont injectées avant le retour si ce n'est pas déjà fait.
+     * La liste retournée inclut les éventuelles nouvelles tâches, sans second aller-retour en base.
      */
     suspend fun loadTasks(date: String = DateUtils.today()): List<Task> {
-        if (date == DateUtils.today()) injectDueRecurringTasksIfNeeded(date)
+        if (date == DateUtils.today()) {
+            val preloaded = injectDueRecurringTasksIfNeeded(date)
+            if (preloaded != null) return preloaded
+        }
         return local.loadTasks(date)
     }
 
@@ -66,35 +63,16 @@ class TaskRepository(
     // ── Injection des tâches récurrentes ─────────────────────────────────────
 
     /**
-     * Garde rapide : court-circuite l'injection si elle a déjà eu lieu aujourd'hui.
-     * Appelle [injectDueRecurringTasks] uniquement si nécessaire, puis met à jour
-     * [InjectionPrefs] pour éviter tout appel redondant lors des prochaines ouvertures.
+     * Injecte les tâches récurrentes dues pour [date], fusionne avec les existantes et retourne la liste finale.
+     * IDs calculés à partir du max existant — les tâches du jour n'utilisent pas l'AUTOINCREMENT Room.
+     * Appelé par [MidnightResetWorker] pour pré-peupler le nouveau jour.
      */
-    suspend fun injectDueRecurringTasksIfNeeded(date: String = DateUtils.today()) {
-        if (InjectionPrefs.getLastInjectionDate(context) == date) return
-        injectDueRecurringTasks(date)
-        InjectionPrefs.setLastInjectionDate(context, date)
-    }
-
-    /**
-     * Injecte dans [date] les tâches récurrentes dues non encore présentes.
-     *
-     * Algorithme :
-     *  1. Demande à [RecurringTaskRepository.getDueForDate] les templates éligibles
-     *     (filtre isDueOn + isRecurringTaskInjectedForDate).
-     *  2. Calcule les IDs à partir du max existant pour éviter tout conflit.
-     *  3. Fusionne avec les tâches existantes et persiste en une seule transaction.
-     *
-     * Appelé par [injectDueRecurringTasksIfNeeded] (ouverture de l'app)
-     * et par [MidnightResetWorker] (reset automatique à minuit).
-     */
-    suspend fun injectDueRecurringTasks(date: String = DateUtils.today()) {
-        val dueTasks = RecurringTaskRepository(context).getDueForDate(date)
-        if (dueTasks.isEmpty()) return
-
+    suspend fun injectDueRecurringTasks(date: String = DateUtils.today()): List<Task> {
         val existing = local.loadTasks(date)
-        val baseId = existing.maxOfOrNull { it.id } ?: 0
+        val dueTasks = recurringRepo.getDueForDate(date)
+        if (dueTasks.isEmpty()) return existing
 
+        val baseId = existing.maxOfOrNull { it.id } ?: 0
         val injected = dueTasks.mapIndexed { index, recurring ->
             Task(
                 id = baseId + index + 1,
@@ -104,9 +82,18 @@ class TaskRepository(
                 recurringTaskId = recurring.id
             )
         }
-
-        local.saveTasks(date, existing + injected)
+        val merged = existing + injected
+        local.saveTasks(date, merged)
         TaskWidgetProvider.refreshAll(context)
+        return merged
+    }
+
+    /** Retourne null si l'injection du jour est déjà faite (garde [InjectionPrefs]), sinon injecte et retourne la liste. */
+    private suspend fun injectDueRecurringTasksIfNeeded(date: String): List<Task>? {
+        if (InjectionPrefs.getLastInjectionDate(context) == date) return null
+        val result = injectDueRecurringTasks(date)
+        InjectionPrefs.setLastInjectionDate(context, date)
+        return result
     }
 
     companion object {

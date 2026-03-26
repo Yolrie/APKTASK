@@ -48,4 +48,15 @@ object DateUtils {
             false
         }
     }
+
+    /**
+     * Retourne le [Calendar.DAY_OF_WEEK] pour une date ISO-8601, ou `null` si le format est invalide.
+     * Utilisé par [com.example.apktask.model.RecurrenceRule.isDueOn].
+     */
+    fun dayOfWeekFor(date: String): Int? = try {
+        val parsed = ISO_FORMAT.parse(date) ?: return null
+        Calendar.getInstance().apply { time = parsed }.get(Calendar.DAY_OF_WEEK)
+    } catch (_: Exception) {
+        null
+    }
 }
