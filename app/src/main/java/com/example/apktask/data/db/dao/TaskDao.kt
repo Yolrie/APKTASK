@@ -27,10 +27,7 @@ interface TaskDao {
     @Query("DELETE FROM tasks")
     suspend fun deleteAll()
 
-    /**
-     * Vérifie si une tâche issue de la tâche récurrente [recurringTaskId]
-     * a déjà été injectée pour [date]. Utilisé pour éviter les doublons.
-     */
-    @Query("SELECT EXISTS(SELECT 1 FROM tasks WHERE date = :date AND recurring_task_id = :recurringTaskId LIMIT 1)")
-    suspend fun hasRecurringTaskForDate(recurringTaskId: Int, date: String): Boolean
+    /** Retourne en un seul aller-retour tous les recurring_task_id déjà injectés pour [date]. */
+    @Query("SELECT DISTINCT recurring_task_id FROM tasks WHERE date = :date AND recurring_task_id IS NOT NULL")
+    suspend fun getInjectedRecurringTaskIdsForDate(date: String): List<Int>
 }

@@ -1,6 +1,7 @@
 package com.example.apktask.model
 
 import java.util.Calendar
+import com.example.apktask.util.DateUtils
 
 /**
  * Fréquence de répétition d'une tâche récurrente.
@@ -48,12 +49,7 @@ data class RecurrenceRule(
      * Retourne `true` si cette règle est satisfaite pour la date [date] au format ISO-8601 (yyyy-MM-dd).
      */
     fun isDueOn(date: String): Boolean {
-        val dayOfWeek = try {
-            val (y, m, d) = date.split("-").map { it.toInt() }
-            Calendar.getInstance().apply { set(y, m - 1, d) }.get(Calendar.DAY_OF_WEEK)
-        } catch (_: Exception) {
-            return false
-        }
+        val dayOfWeek = DateUtils.dayOfWeekFor(date) ?: return false
         return when (frequency) {
             Frequency.DAILY -> true
             Frequency.WEEKDAYS -> dayOfWeek in Calendar.MONDAY..Calendar.FRIDAY
