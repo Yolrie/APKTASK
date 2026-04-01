@@ -12,6 +12,10 @@ import com.example.apktask.data.LocalDataSource
 import com.example.apktask.model.TaskStatus
 import com.example.apktask.ui.MainActivity
 import com.example.apktask.util.DateUtils
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Home screen widget — shows today's task progress (X/Y + progress bar + streak).
@@ -41,47 +45,46 @@ class TaskWidgetProvider : AppWidgetProvider() {
 
         /**
          * Builds and pushes a [RemoteViews] update for a single widget instance.
-         * Called from [onUpdate] and from WorkManager after each task save.
+         * Room queries are suspend — run on Dispatchers.IO.
+         * [AppWidgetManager.updateAppWidget] is a thread-safe IPC call, safe to call from IO.
          */
         fun update(context: Context, manager: AppWidgetManager, widgetId: Int) {
-            val local = LocalDataSource.getInstance(context)
-            val today = DateUtils.today()
-            val tasks = local.loadTasks(today)
-            val streak = local.loadStreak()
+            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                val local = LocalDataSource.getInstance(context)
+                val today = DateUtils.today()
+                val tasks = local.loadTasks(today)
+                val streak = local.loadStreak()
 
-            val total = tasks.size
-            val done = tasks.count { it.status == TaskStatus.COMPLETED }
-            val percent = if (total > 0) (done * 100) / total else 0
+                val total = tasks.size
+                val done = tasks.count { it.status == TaskStatus.COMPLETED }
+                val percent = if (total > 0) (done * 100) / total else 0
 
-            val views = RemoteViews(context.packageName, R.layout.widget_tasks)
+                val views = RemoteViews(context.packageName, R.layout.widget_tasks)
 
-            // Progress fraction
-            val progressText = if (total > 0) "$done / $total" else context.getString(R.string.widget_no_tasks)
-            views.setTextViewText(R.id.tvWidgetProgress, progressText)
-            views.setProgressBar(R.id.progressWidget, 100, percent, false)
+                val progressText = if (total > 0) "$done / $total"
+                    else context.getString(R.string.widget_no_tasks)
+                views.setTextViewText(R.id.tvWidgetProgress, progressText)
+                views.setProgressBar(R.id.progressWidget, 100, percent, false)
 
-            // Streak
-            if (streak.count > 0) {
-                views.setViewVisibility(R.id.tvWidgetStreak, View.VISIBLE)
-                views.setTextViewText(
-                    R.id.tvWidgetStreak,
-                    context.getString(R.string.widget_streak_format, streak.count)
+                if (streak.count > 0) {
+                    views.setViewVisibility(R.id.tvWidgetStreak, View.VISIBLE)
+                    views.setTextViewText(
+                        R.id.tvWidgetStreak,
+                        context.getString(R.string.widget_streak_format, streak.count)
+                    )
+                } else {
+                    views.setViewVisibility(R.id.tvWidgetStreak, View.GONE)
+                }
+
+                val intent = Intent(context, MainActivity::class.java)
+                val pendingIntent = PendingIntent.getActivity(
+                    context, 0, intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
-            } else {
-                views.setViewVisibility(R.id.tvWidgetStreak, View.GONE)
+                views.setOnClickPendingIntent(R.id.tvWidgetProgress, pendingIntent)
+
+                manager.updateAppWidget(widgetId, views)
             }
-
-            // Tap to open app
-            val intent = Intent(context, MainActivity::class.java)
-            val pendingIntent = PendingIntent.getActivity(
-                context,
-                0,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.tvWidgetProgress, pendingIntent)
-
-            manager.updateAppWidget(widgetId, views)
         }
 
         /**
@@ -94,8 +97,7 @@ class TaskWidgetProvider : AppWidgetProvider() {
                 android.content.ComponentName(context, TaskWidgetProvider::class.java)
             )
             if (ids.isNotEmpty()) {
-                val provider = TaskWidgetProvider()
-                provider.onUpdate(context, manager, ids)
+                TaskWidgetProvider().onUpdate(context, manager, ids)
             }
         }
     }

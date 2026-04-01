@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.example.apktask.R
@@ -19,6 +20,7 @@ import com.example.apktask.databinding.ActivityMainBinding
 import com.example.apktask.util.BiometricHelper
 import com.example.apktask.util.NotificationHelper
 import com.example.apktask.util.WorkScheduler
+import kotlinx.coroutines.launch
 
 /**
  * Shell activity — hosts the NavHostFragment and wires up bottom navigation.
@@ -39,15 +41,16 @@ import com.example.apktask.util.WorkScheduler
  *    triggers a fresh auth (unless within LOCK_TIMEOUT_MS).
  *  - LOCK_TIMEOUT_MS = 30 s: graceful for screen rotations and brief
  *    task switches without requiring repeated auth.
+ *
+ * Biometric setting loading:
+ *  - [biometricLockEnabled] is refreshed via [lifecycleScope] on each [onResume].
+ *    This picks up changes made in ProfileFragment without requiring a restart.
+ *  - [onStop] uses the cached value (always set before [onResume] completes).
  */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
 
-    /**
-     * Must be registered before STARTED.
-     * NotificationWorker re-checks permission at execution time; no action needed on denial.
-     */
     private val notifPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { /* granted or denied — NotificationWorker checks at runtime */ }
@@ -57,10 +60,12 @@ class MainActivity : AppCompatActivity() {
     private var isUnlocked = false
     private var backgroundedAtMs = 0L
 
+    /** Cached value loaded from Room via [lifecycleScope] on each [onResume]. */
+    private var biometricLockEnabled = false
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // FLAG_SECURE must precede super.onCreate() so no unprotected frame is ever rendered.
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
             WindowManager.LayoutParams.FLAG_SECURE
@@ -81,17 +86,19 @@ class MainActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         backgroundedAtMs = SystemClock.elapsedRealtime()
-        // Re-lock when biometric is enabled
-        if (isBiometricLockEnabled()) {
-            isUnlocked = false
-        }
+        if (isBiometricLockEnabled()) isUnlocked = false
     }
 
     override fun onResume() {
         super.onResume()
+        // Capture elapsed before the suspend so the comparison is accurate.
         val elapsed = SystemClock.elapsedRealtime() - backgroundedAtMs
-        if (isBiometricLockEnabled() && !isUnlocked && elapsed > LOCK_TIMEOUT_MS) {
-            showLockScreen()
+        lifecycleScope.launch {
+            biometricLockEnabled = LocalDataSource.getInstance(this@MainActivity)
+                .loadProfile().biometricLockEnabled
+            if (!isUnlocked && elapsed > LOCK_TIMEOUT_MS && isBiometricLockEnabled()) {
+                showLockScreen()
+            }
         }
     }
 
@@ -115,13 +122,10 @@ class MainActivity : AppCompatActivity() {
 
     // ── Biometric lock gate ───────────────────────────────────────────────────
 
-    private fun isBiometricLockEnabled(): Boolean {
-        val profile = LocalDataSource.getInstance(this).loadProfile()
-        return profile.biometricLockEnabled && BiometricHelper.isAvailable(this)
-    }
+    /** Uses the cached [biometricLockEnabled] — always current after each [onResume]. */
+    private fun isBiometricLockEnabled() = biometricLockEnabled && BiometricHelper.isAvailable(this)
 
     private fun showLockScreen() {
-        // Hide content — nothing is visible while the prompt is displayed.
         binding.navHostFragment.visibility = View.INVISIBLE
         binding.bottomNav.visibility = View.INVISIBLE
 
@@ -134,11 +138,7 @@ class MainActivity : AppCompatActivity() {
                 binding.navHostFragment.visibility = View.VISIBLE
                 binding.bottomNav.visibility = View.VISIBLE
             },
-            onError = {
-                // Auth cancelled or failed — keep content hidden and finish.
-                // The user can reopen the app to try again.
-                finish()
-            }
+            onError = { finish() }
         )
     }
 
@@ -154,7 +154,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        /** Grace period before re-locking after backgrounding (milliseconds). */
         private const val LOCK_TIMEOUT_MS = 30_000L
     }
 }

@@ -35,14 +35,6 @@
             </intent-filter>
         </activity>
 
-        <receiver
-            android:name=".receiver.MidnightReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.intent.action.DATE_CHANGED" />
-            </intent-filter>
-        </receiver>
-
         <!--
             Home screen widget receiver.
             exported="true" required: the launcher (a different app) must be able
