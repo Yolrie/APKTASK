@@ -77,6 +77,8 @@ class MainActivity : AppCompatActivity() {
         setupBottomNavigation()
         collectViewModelState()
 
+        binding.tvMotivation.text = viewModel.motivationalMessage
+
         NotificationHelper.createChannel(this)
         WorkScheduler.init(this)
         requestNotificationPermission()
