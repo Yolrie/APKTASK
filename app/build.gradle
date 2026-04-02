@@ -5,12 +5,29 @@ plugins {
     // alias(libs.plugins.google.services) // Décommentez après setup Firebase
 }
 
+// Load signing secrets from keystore.properties (git-ignored).
+// Falls back to empty strings so the debug build still compiles on CI without the file.
+def keystoreProps = new Properties()
+def keystoreFile = rootProject.file('keystore.properties')
+if (keystoreFile.exists()) {
+    keystoreFile.withInputStream { keystoreProps.load(it) }
+}
+
 android {
     namespace 'com.example.apktask'
     compileSdk 36
 
+    signingConfigs {
+        release {
+            storeFile     keystoreProps['storeFile']     ? rootProject.file(keystoreProps['storeFile']) : null
+            storePassword keystoreProps['storePassword'] ?: ''
+            keyAlias      keystoreProps['keyAlias']      ?: ''
+            keyPassword   keystoreProps['keyPassword']   ?: ''
+        }
+    }
+
     defaultConfig {
-        applicationId "com.example.apktask"
+        applicationId "io.doit.app"
         minSdk 28
         targetSdk 36
         versionCode 3
@@ -21,8 +38,9 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            signingConfig    signingConfigs.release
+            minifyEnabled    true
+            shrinkResources  true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
