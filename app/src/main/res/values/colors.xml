@@ -1,56 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- ═══════════════════════════════════════════
-         DARK MODE MONOCHROME PALETTE
-         Single accent: Electric Cyan #00D4FF
-    ═══════════════════════════════════════════ -->
+    <!-- ── Palette Material Design 3 ──────────────────────────────────────── -->
+    <!-- Primary : violet profond (MD3 Purple 40) -->
+    <color name="md3_primary">#6750A4</color>
+    <color name="md3_on_primary">#FFFFFF</color>
+    <color name="md3_primary_container">#EADDFF</color>
+    <color name="md3_on_primary_container">#21005D</color>
 
-    <!-- Core surfaces -->
-    <color name="primary">#00D4FF</color>           <!-- Electric cyan accent -->
-    <color name="primary_light">#33DDFF</color>      <!-- Lighter cyan for hover/pressed -->
-    <color name="primary_dark">#00A8CC</color>        <!-- Darker cyan variant -->
-    <color name="accent">#00D4FF</color>              <!-- Single vivid accent -->
+    <!-- Secondary : mauve neutre -->
+    <color name="md3_secondary">#625B71</color>
+    <color name="md3_on_secondary">#FFFFFF</color>
+    <color name="md3_secondary_container">#E8DEF8</color>
 
-    <!-- Backgrounds & Surfaces -->
-    <color name="background">#0D0D0D</color>          <!-- Near-black background -->
-    <color name="surface">#1A1A1A</color>             <!-- Card/surface color -->
-    <color name="surface_elevated">#252525</color>    <!-- Elevated surface -->
-    <color name="surface_variant">#1E1E1E</color>     <!-- Alternative surface -->
+    <!-- Tertiary : rose-prune (contraste chaud) -->
+    <color name="md3_tertiary">#7D5260</color>
+    <color name="md3_on_tertiary">#FFFFFF</color>
+    <color name="md3_tertiary_container">#FFD8E4</color>
 
-    <!-- Text -->
-    <color name="text_primary">#F5F5F5</color>        <!-- Near-white primary text -->
-    <color name="text_secondary">#9E9E9E</color>      <!-- Medium grey secondary -->
-    <color name="text_tertiary">#666666</color>        <!-- Faint tertiary text -->
-    <color name="text_on_accent">#000000</color>       <!-- Black text on accent buttons -->
+    <!-- Surface / Background -->
+    <color name="md3_surface">#FFFBFE</color>
+    <color name="md3_surface_variant">#E7E0EC</color>
+    <color name="md3_on_surface">#1C1B1F</color>
+    <color name="md3_on_surface_variant">#49454F</color>
+    <color name="md3_outline">#79747E</color>
+    <color name="md3_outline_variant">#CAC4D0</color>
 
-    <!-- Borders & Dividers -->
-    <color name="border">#2A2A2A</color>              <!-- Subtle dark borders -->
-    <color name="border_light">#333333</color>         <!-- Slightly visible border -->
+    <!-- Error -->
+    <color name="md3_error">#B3261E</color>
+    <color name="md3_error_container">#F9DEDC</color>
+    <color name="md3_on_error">#FFFFFF</color>
 
-    <!-- Semantic colors (muted for dark mode) -->
-    <color name="success">#4ADE80</color>             <!-- Muted green -->
-    <color name="error">#F87171</color>               <!-- Muted red -->
-    <color name="warning">#FBBF24</color>             <!-- Muted amber -->
+    <!-- ── Couleurs fonctionnelles (aliases stables pour le code) ──────────── -->
+    <color name="primary">#6750A4</color>
+    <color name="primary_light">#9E82D4</color>
+    <color name="accent">#625B71</color>
+    <color name="background">#FFFBFE</color>
+    <color name="surface">#F7F2FA</color>
+    <color name="text_primary">#1C1B1F</color>
+    <color name="text_secondary">#49454F</color>
+    <color name="border">#CAC4D0</color>
+    <color name="success">#1B873A</color>
+    <color name="error">#B3261E</color>
 
-    <!-- Avatar colors (vivid, good on dark bg) -->
-    <color name="avatar_0">#00D4FF</color>            <!-- Cyan (accent) -->
-    <color name="avatar_1">#4ADE80</color>            <!-- Green -->
-    <color name="avatar_2">#FBBF24</color>            <!-- Amber -->
-    <color name="avatar_3">#F87171</color>            <!-- Red -->
-    <color name="avatar_4">#A78BFA</color>            <!-- Violet -->
-    <color name="avatar_5">#F472B6</color>            <!-- Pink -->
-    <color name="avatar_6">#2DD4BF</color>            <!-- Teal -->
-    <color name="avatar_7">#FB923C</color>            <!-- Orange -->
+    <!-- ── 8 couleurs d'avatar ─────────────────────────────────────────────── -->
+    <color name="avatar_0">#6750A4</color>  <!-- Violet -->
+    <color name="avatar_1">#B3261E</color>  <!-- Rouge -->
+    <color name="avatar_2">#1B873A</color>  <!-- Vert -->
+    <color name="avatar_3">#0055CC</color>  <!-- Bleu -->
+    <color name="avatar_4">#E87722</color>  <!-- Orange -->
+    <color name="avatar_5">#625B71</color>  <!-- Mauve -->
+    <color name="avatar_6">#00796B</color>  <!-- Teal -->
+    <color name="avatar_7">#7D5260</color>  <!-- Prune -->
 
-    <!-- Bottom navigation -->
-    <color name="nav_background">#0D0D0D</color>      <!-- Dark nav bar -->
-    <color name="nav_indicator">#1A3A40</color>        <!-- Subtle cyan tint for indicator -->
-
-    <!-- Progress bar -->
-    <color name="progress_track">#2A2A2A</color>      <!-- Dark track -->
-    <color name="progress_indicator">#00D4FF</color>   <!-- Cyan fill -->
-
-    <!-- Outlined button -->
-    <color name="outline_button_stroke">#3A3A3A</color>
-    <color name="outline_button_text">#E0E0E0</color>
+    <!-- ── Widget colors (light mode — overridden in values-night/colors.xml) ── -->
+    <color name="widget_background">#FFFBFE</color>
+    <color name="widget_background_stroke">#E7E0EC</color>
+    <color name="widget_text_primary">#1C1B1F</color>
+    <color name="widget_text_accent">#9E82D4</color>
+    <color name="widget_progress_tint">#6750A4</color>
+    <color name="widget_progress_bg">#E7E0EC</color>
 </resources>

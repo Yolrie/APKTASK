@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.apktask.data.TaskRepository
 import com.example.apktask.data.UserRepository
+import com.example.apktask.model.Priority
 import com.example.apktask.model.Streak
 import com.example.apktask.model.Task
 import com.example.apktask.model.TaskStatus
@@ -17,6 +18,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 /**
@@ -57,6 +62,14 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private val _streak = MutableStateFlow(Streak())
     private val _errorMessage = MutableStateFlow<String?>(null)
 
+    /**
+     * Holds the most recently deleted task for 5 seconds, enabling undo.
+     * Cleared automatically after [UNDO_TIMEOUT_MS] or when undo is confirmed.
+     */
+    private val _deletedTask = MutableStateFlow<Task?>(null)
+    val deletedTask: StateFlow<Task?> = _deletedTask.asStateFlow()
+    private var undoJob: Job? = null
+
     // ── État exposé (lecture seule) ───────────────────────────────────────────
 
     val isSessionRegistered: StateFlow<Boolean> = _isSessionRegistered.asStateFlow()
@@ -78,7 +91,12 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
      */
     val tasksUiState: StateFlow<List<TaskUiState>> =
         combine(_tasks, _editingIds) { tasks, editingIds ->
-            tasks.map { TaskUiState(task = it, isEditing = it.id in editingIds) }
+            // Sort active tasks by priority descending (HIGH first), then by creation time.
+            // Completed/cancelled tasks keep their natural order at the end.
+            val sorted = tasks.sortedWith(
+                compareByDescending<Task> { it.priority.code }.thenBy { it.createdAt }
+            )
+            sorted.map { TaskUiState(task = it, isEditing = it.id in editingIds) }
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -88,9 +106,11 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     // ── Initialisation ───────────────────────────────────────────────────────
 
     init {
-        _tasks.value = repository.loadTasks(today)
-        _isSessionRegistered.value = repository.loadSessionRegistered(today)
-        _streak.value = userRepository.loadStreak()
+        viewModelScope.launch(Dispatchers.IO) {
+            _tasks.value = repository.loadTasks(today)
+            _isSessionRegistered.value = repository.loadSessionRegistered(today)
+            _streak.value = userRepository.loadStreak()
+        }
     }
 
     // ── Opérations CRUD ──────────────────────────────────────────────────────
@@ -133,8 +153,49 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun deleteTask(taskId: Int) {
+        val task = _tasks.value.find { it.id == taskId } ?: return
         _tasks.update { tasks -> tasks.filter { it.id != taskId } }
         _editingIds.update { it - taskId }
+        persist()
+        // Hold deleted task for UNDO_TIMEOUT_MS then clear
+        _deletedTask.value = task
+        undoJob?.cancel()
+        undoJob = viewModelScope.launch {
+            delay(UNDO_TIMEOUT_MS)
+            _deletedTask.value = null
+        }
+    }
+
+    /**
+     * Restores the most recently deleted task.
+     * No-op if the undo window has expired.
+     */
+    fun undoDelete() {
+        val task = _deletedTask.value ?: return
+        undoJob?.cancel()
+        _deletedTask.value = null
+        _tasks.update { it + task }
+        persist()
+    }
+
+    /**
+     * Cycles the priority of a task: NONE → HIGH → MEDIUM → LOW → NONE.
+     * Only active tasks (DRAFT / IN_PROGRESS) can have their priority changed.
+     */
+    fun cyclePriority(taskId: Int) {
+        _tasks.update { tasks ->
+            tasks.map { task ->
+                if (task.id == taskId) {
+                    val next = when (task.priority) {
+                        Priority.NONE -> Priority.HIGH
+                        Priority.HIGH -> Priority.MEDIUM
+                        Priority.MEDIUM -> Priority.LOW
+                        Priority.LOW -> Priority.NONE
+                    }
+                    task.copy(priority = next)
+                } else task
+            }
+        }
         persist()
     }
 
@@ -155,16 +216,20 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         }
         _editingIds.value = emptySet()
         _isSessionRegistered.value = true
-        persist()
-        repository.saveSessionRegistered(today, true)
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.saveTasks(today, _tasks.value)
+            repository.saveSessionRegistered(today, true)
+        }
     }
 
     fun resetAll() {
-        repository.clearAll()
         _tasks.value = emptyList()
         _editingIds.value = emptySet()
         _isSessionRegistered.value = false
-        _streak.value = userRepository.loadStreak()
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.clearAll()
+            _streak.value = userRepository.loadStreak()
+        }
     }
 
     // ── Utilitaires ──────────────────────────────────────────────────────────
@@ -174,7 +239,10 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun persist() {
-        repository.saveTasks(today, _tasks.value)
+        val snapshot = _tasks.value
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.saveTasks(today, snapshot)
+        }
     }
 
     /**
@@ -200,5 +268,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
     companion object {
         const val MAX_TASKS = 10
+        private const val UNDO_TIMEOUT_MS = 5_000L
     }
 }

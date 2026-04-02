@@ -13,19 +13,14 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.apktask.R
 import com.example.apktask.databinding.FragmentProfileBinding
-import com.example.apktask.model.TaskStatus
+import com.example.apktask.util.BiometricHelper
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 
 /**
- * Fragment de l'onglet Profil.
+ * Fragment for the Profile tab.
  *
- * Permet de :
- *  - Modifier son nom et choisir sa couleur d'avatar
- *  - Voir et copier son code ami
- *  - Configurer les rappels (heure matin/soir, activé/désactivé)
- *  - Activer/désactiver la visibilité publique
- *  - Partager sa progression du jour
+ * Collects StateFlow from ProfileViewModel using repeatOnLifecycle(STARTED).
  */
 class ProfileFragment : Fragment() {
 
@@ -47,7 +42,7 @@ class ProfileFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setupAvatarColorPicker()
         setupClickListeners()
-        observeViewModel()
+        collectViewModelState()
     }
 
     override fun onDestroyView() {
@@ -55,7 +50,7 @@ class ProfileFragment : Fragment() {
         _binding = null
     }
 
-    // ── Couleurs d'avatar ─────────────────────────────────────────────────────
+    // ── Avatar color picker ───────────────────────────────────────────────────
 
     private val avatarButtons by lazy {
         listOf(
@@ -71,7 +66,7 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    // ── Listeners ─────────────────────────────────────────────────────────────
+    // ── Click listeners ───────────────────────────────────────────────────────
 
     private fun setupClickListeners() {
         binding.btnSaveName.setOnClickListener {
@@ -95,51 +90,82 @@ class ProfileFragment : Fragment() {
             )
         }
 
-        binding.btnShare.setOnClickListener {
-            shareProgress()
+        binding.sliderMorning.addOnChangeListener { _, value, _ ->
+            binding.tvMorningHour.text = getString(R.string.hour_format, value.toInt())
+        }
+
+        binding.sliderEvening.addOnChangeListener { _, value, _ ->
+            binding.tvEveningHour.text = getString(R.string.hour_format, value.toInt())
+        }
+
+        binding.btnShare.setOnClickListener { shareProgress() }
+
+        binding.switchBiometric.setOnCheckedChangeListener { _, _ ->
+            if (!BiometricHelper.isAvailable(requireContext())) {
+                // Revert the switch and inform the user
+                binding.switchBiometric.isChecked = viewModel.profile.value.biometricLockEnabled
+                Snackbar.make(
+                    binding.root,
+                    getString(R.string.biometric_lock_unavailable),
+                    Snackbar.LENGTH_LONG
+                ).show()
+                return@setOnCheckedChangeListener
+            }
+            viewModel.toggleBiometricLock()
         }
     }
 
-    // ── Observation ───────────────────────────────────────────────────────────
+    // ── StateFlow collection ──────────────────────────────────────────────────
 
-    private fun observeViewModel() {
+    private fun collectViewModelState() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
 
                 launch {
                     viewModel.profile.collect { profile ->
-                        // Avatar
+                        // Avatar background color
                         val colorRes = avatarColorRes(profile.avatarColorIndex)
-                        binding.tvAvatarLetter.text = profile.avatarLetter
                         binding.viewAvatarBg.setBackgroundColor(
                             requireContext().getColor(colorRes)
                         )
-                        // Sélection
+                        binding.tvAvatarLetter.text = profile.avatarLetter
+
+                        // Color picker selection opacity
                         avatarButtons.forEachIndexed { i, btn ->
                             btn.alpha = if (i == profile.avatarColorIndex) 1f else 0.35f
                         }
 
-                        // Nom
+                        // Name (only pre-fill if field is empty to avoid overwriting user input)
                         if (binding.etDisplayName.text.isNullOrEmpty()) {
                             binding.etDisplayName.setText(profile.displayName)
                         }
 
-                        // Code ami
+                        // Friend code
                         binding.tvFriendCode.text = profile.friendCode
 
-                        // Visibilité
+                        // Visibility
                         binding.switchPublic.isChecked = profile.isPublic
                         binding.tvPublicHint.text = if (profile.isPublic)
                             getString(R.string.profile_public_hint_on)
                         else
                             getString(R.string.profile_public_hint_off)
 
-                        // Notifications
+                        // Notification settings
                         binding.switchMorning.isChecked = profile.notifMorningEnabled
                         binding.switchEvening.isChecked = profile.notifEveningEnabled
                         binding.sliderMorning.value = profile.notifMorningHour.toFloat()
                         binding.sliderEvening.value = profile.notifEveningHour.toFloat()
-                        updateSliderLabels(profile.notifMorningHour, profile.notifEveningHour)
+                        binding.tvMorningHour.text =
+                            getString(R.string.hour_format, profile.notifMorningHour)
+                        binding.tvEveningHour.text =
+                            getString(R.string.hour_format, profile.notifEveningHour)
+
+                        // Biometric lock
+                        binding.switchBiometric.isChecked = profile.biometricLockEnabled
+                        binding.tvBiometricHint.text = if (profile.biometricLockEnabled)
+                            getString(R.string.biometric_lock_hint_on)
+                        else
+                            getString(R.string.biometric_lock_hint_off)
                     }
                 }
 
@@ -147,7 +173,8 @@ class ProfileFragment : Fragment() {
                     viewModel.streak.collect { streak ->
                         binding.tvStreakValue.text = streak.count.toString()
                         binding.tvStreakBadge.text = streak.badge
-                        binding.tvStreakRecord.text = getString(R.string.streak_record, streak.longestEver)
+                        binding.tvStreakRecord.text =
+                            getString(R.string.streak_record, streak.longestEver)
                     }
                 }
 
@@ -172,15 +199,13 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    // ── Partage ───────────────────────────────────────────────────────────────
+    // ── Share ─────────────────────────────────────────────────────────────────
 
     private fun shareProgress() {
         val tasks = taskViewModel.tasksUiState.value
-        val completedToday = tasks.count { it.task.status == TaskStatus.COMPLETED }
-        val totalToday = tasks.size
         val text = viewModel.buildShareText(
-            completedToday = completedToday,
-            totalToday = totalToday
+            completedToday = tasks.count { it.task.status == com.example.apktask.model.TaskStatus.COMPLETED },
+            totalToday = tasks.size
         )
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
@@ -189,12 +214,7 @@ class ProfileFragment : Fragment() {
         startActivity(Intent.createChooser(intent, getString(R.string.share_progress_title)))
     }
 
-    // ── Utilitaires ──────────────────────────────────────────────────────────
-
-    private fun updateSliderLabels(morningHour: Int, eveningHour: Int) {
-        binding.tvMorningHour.text = getString(R.string.hour_format, morningHour)
-        binding.tvEveningHour.text = getString(R.string.hour_format, eveningHour)
-    }
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun avatarColorRes(index: Int): Int = when (index) {
         0 -> R.color.avatar_0

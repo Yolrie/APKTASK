@@ -25,7 +25,8 @@ data class UserProfile(
     val notifMorningEnabled: Boolean = true,
     val notifEveningEnabled: Boolean = true,
     val notifMorningHour: Int = 8,
-    val notifEveningHour: Int = 21
+    val notifEveningHour: Int = 21,
+    val biometricLockEnabled: Boolean = false
 ) {
     /** Lettre de l'avatar (1ère lettre du nom, ou "?" si vide). */
     val avatarLetter: String

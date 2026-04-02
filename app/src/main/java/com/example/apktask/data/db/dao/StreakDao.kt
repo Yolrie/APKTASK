@@ -11,8 +11,8 @@ interface StreakDao {
 
     /** Retourne null si aucune série n'a encore été persistée. */
     @Query("SELECT * FROM streak WHERE id = 1 LIMIT 1")
-    fun get(): StreakEntity?
+    suspend fun get(): StreakEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun save(streak: StreakEntity)
+    suspend fun save(streak: StreakEntity)
 }
