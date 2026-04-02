@@ -1,6 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
+    // kotlin.android not applied explicitly: AGP 9.0 has built-in Kotlin support
     alias(libs.plugins.ksp)
     // alias(libs.plugins.google.services) // Décommentez après setup Firebase
 }
