@@ -20,9 +20,10 @@ local.properties
 */build/
 output-metadata.json
 
-# Keystores
+# Keystores & signing secrets (NEVER commit these)
 *.jks
 *.keystore
+keystore.properties
 
 # Logs
 *.log

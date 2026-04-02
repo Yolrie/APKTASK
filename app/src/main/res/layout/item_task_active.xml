@@ -1,53 +1,92 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Item pour les tâches DRAFT (brouillon) et IN_PROGRESS (en cours).
-  Contient un champ de texte éditable et deux boutons d'action.
+  MD3 card item for DRAFT and IN_PROGRESS tasks.
+  IDs etTaskTitle / btnAction / btnSecondary must stay stable (TaskAdapter binds them).
+  chipPriority: tap cycles priority NONE → HIGH → MEDIUM → LOW → NONE.
 -->
-<LinearLayout
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:paddingVertical="6dp"
-    android:gravity="center_vertical">
+    android:layout_marginVertical="@dimen/card_margin_vertical"
+    app:cardCornerRadius="@dimen/card_corner_radius"
+    app:cardElevation="@dimen/card_elevation"
+    app:strokeWidth="0dp">
 
-    <!-- Champ de saisie / affichage du titre -->
-    <androidx.appcompat.widget.AppCompatEditText
-        android:id="@+id/etTaskTitle"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:inputType="textCapSentences|textAutoCorrect"
-        android:maxLength="200"
-        android:maxLines="2"
-        android:background="@android:color/transparent"
-        android:textSize="15sp"
-        android:textColor="@color/text_primary"
-        android:textColorHint="@color/text_tertiary"
-        android:paddingHorizontal="4dp" />
+        android:orientation="vertical"
+        android:padding="@dimen/space_sm"
+        android:minHeight="@dimen/task_item_min_height">
 
-    <!-- Bouton principal : Modifier / Valider / Terminé -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnAction"
-        style="@style/Widget.MaterialComponents.Button.TextButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="4dp"
-        android:textSize="12sp"
-        android:textColor="@color/accent"
-        android:minWidth="0dp"
-        android:paddingHorizontal="8dp" />
+        <!-- Main row: status bar + title + actions -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-    <!-- Bouton secondaire : Supprimer / Annuler -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnSecondary"
-        style="@style/Widget.MaterialComponents.Button.TextButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="2dp"
-        android:textColor="@color/error"
-        android:textSize="12sp"
-        android:minWidth="0dp"
-        android:paddingHorizontal="8dp" />
+            <!-- Priority accent bar -->
+            <View
+                android:id="@+id/viewPriorityBar"
+                android:layout_width="@dimen/task_status_bar_width"
+                android:layout_height="match_parent"
+                android:minHeight="@dimen/task_item_min_height"
+                android:layout_marginEnd="@dimen/space_sm" />
 
-</LinearLayout>
+            <!-- Task title (editable in edit mode) -->
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/etTaskTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:inputType="textCapSentences|textAutoCorrect"
+                android:maxLength="200"
+                android:maxLines="2"
+                android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                android:textColor="?attr/colorOnSurface"
+                android:paddingHorizontal="@dimen/space_xs" />
+
+            <!-- Primary action: Edit / Validate / Done -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAction"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:paddingHorizontal="@dimen/space_sm"
+                android:textAppearance="@style/TextAppearance.Material3.LabelMedium" />
+
+            <!-- Secondary action: Delete / Cancel -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSecondary"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/space_xs"
+                android:minWidth="0dp"
+                android:paddingHorizontal="@dimen/space_sm"
+                android:textColor="@color/error"
+                android:textAppearance="@style/TextAppearance.Material3.LabelMedium" />
+
+        </LinearLayout>
+
+        <!-- Priority chip row — tap to cycle -->
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipPriority"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_xs"
+            android:layout_marginStart="@dimen/space_md"
+            app:chipMinHeight="24dp"
+            android:textSize="11sp"
+            android:textColor="?attr/colorOnSurface"
+            app:chipBackgroundColor="?attr/colorSurfaceVariant"
+            app:chipStrokeWidth="0dp" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

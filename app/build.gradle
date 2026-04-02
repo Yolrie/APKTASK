@@ -1,16 +1,33 @@
 plugins {
     alias(libs.plugins.android.application)
-    // kotlin-android not needed: AGP 9.0 has built-in Kotlin support
+    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     // alias(libs.plugins.google.services) // Décommentez après setup Firebase
+}
+
+// Load signing secrets from keystore.properties (git-ignored).
+// Falls back to empty strings so the debug build still compiles on CI without the file.
+def keystoreProps = new Properties()
+def keystoreFile = rootProject.file('keystore.properties')
+if (keystoreFile.exists()) {
+    keystoreFile.withInputStream { keystoreProps.load(it) }
 }
 
 android {
     namespace 'com.example.apktask'
     compileSdk 36
 
+    signingConfigs {
+        release {
+            storeFile     keystoreProps['storeFile']     ? rootProject.file(keystoreProps['storeFile']) : null
+            storePassword keystoreProps['storePassword'] ?: ''
+            keyAlias      keystoreProps['keyAlias']      ?: ''
+            keyPassword   keystoreProps['keyPassword']   ?: ''
+        }
+    }
+
     defaultConfig {
-        applicationId "com.example.apktask"
+        applicationId "io.doit.app"
         minSdk 28
         targetSdk 36
         versionCode 3
@@ -21,8 +38,9 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            signingConfig    signingConfigs.release
+            minifyEnabled    true
+            shrinkResources  true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -35,14 +53,16 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
-
-    // kotlinOptions migrated to kotlin.compilerOptions for AGP 9.0+
 }
 
 kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -62,21 +82,20 @@ dependencies {
     implementation libs.fragment.ktx
     implementation libs.work.runtime.ktx
 
-    // ── Room + SQLCipher ─────────────────────────────────────────────────────
     implementation libs.room.runtime
     implementation libs.room.ktx
     ksp libs.room.compiler
-    // SQLCipher : chiffrement AES-256 au niveau page de la base Room
     implementation libs.sqlcipher.android
     implementation libs.sqlite
 
-    // ── Firebase (décommentez après avoir ajouté google-services.json) ──────
-    // implementation platform(libs.firebase.bom)
-    // implementation libs.firebase.auth.ktx
-    // implementation libs.firebase.firestore.ktx
-    // implementation libs.firebase.messaging.ktx
+    implementation libs.biometric
 
     testImplementation libs.junit
+    testImplementation libs.coroutines.test
+
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
+    androidTestImplementation libs.room.testing
+    androidTestImplementation libs.androidx.test.core
+    androidTestImplementation libs.coroutines.test
 }

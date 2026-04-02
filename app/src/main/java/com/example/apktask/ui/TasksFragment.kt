@@ -6,31 +6,33 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.DefaultItemAnimator
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.apktask.R
 import com.example.apktask.databinding.FragmentTasksBinding
 import com.example.apktask.model.TaskStatus
+import com.example.apktask.ui.swipe.SwipeActionCallback
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 
 /**
- * Fragment de l'onglet Tâches.
+ * Fragment for the Tasks tab.
  *
- * Responsabilités (UI uniquement) :
- *  - Afficher la liste des tâches du jour filtrée en 3 zones
- *  - Transmettre les actions utilisateur au TaskViewModel
- *  - Mettre à jour les compteurs, la barre de progression, les sections
+ * Collects StateFlow from TaskViewModel using repeatOnLifecycle(STARTED):
+ *  - Collectors are suspended when the fragment is not visible (onStop)
+ *  - Resumed at onStart — no background UI updates, no memory leaks.
  */
 class TasksFragment : Fragment() {
 
     private var _binding: FragmentTasksBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: TaskViewModel by viewModels()
+    private val viewModel: TaskViewModel by activityViewModels()
 
     private lateinit var adapterEnCours: TaskAdapter
     private lateinit var adapterTerminees: TaskAdapter
@@ -49,7 +51,7 @@ class TasksFragment : Fragment() {
         setupHeader()
         setupRecyclerViews()
         setupClickListeners()
-        observeViewModel()
+        collectViewModelState()
     }
 
     override fun onDestroyView() {
@@ -71,7 +73,8 @@ class TasksFragment : Fragment() {
             onCancelEdit = { viewModel.cancelEditing(it) },
             onDelete = { viewModel.deleteTask(it) },
             onMarkDone = { viewModel.setStatus(it, TaskStatus.COMPLETED) },
-            onMarkCancelled = { viewModel.setStatus(it, TaskStatus.CANCELLED) }
+            onMarkCancelled = { viewModel.setStatus(it, TaskStatus.CANCELLED) },
+            onCyclePriority = { viewModel.cyclePriority(it) }
         )
         adapterTerminees = TaskAdapter()
         adapterAnnulees = TaskAdapter()
@@ -80,7 +83,15 @@ class TasksFragment : Fragment() {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = adapterEnCours
             isNestedScrollingEnabled = false
+            itemAnimator = DefaultItemAnimator().apply {
+                // Fast but smooth: 200ms add/remove, 150ms move (priority reorder)
+                addDuration = 200
+                removeDuration = 200
+                moveDuration = 150
+                changeDuration = 0  // no flicker on in-place updates
+            }
         }
+        attachSwipeGestures()
         binding.rvTerminees.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = adapterTerminees
@@ -113,16 +124,30 @@ class TasksFragment : Fragment() {
         }
     }
 
-    // ── Observation ───────────────────────────────────────────────────────────
+    // ── Swipe gestures ────────────────────────────────────────────────────────
 
-    private fun observeViewModel() {
+    private fun attachSwipeGestures() {
+        val callback = SwipeActionCallback(
+            context = requireContext(),
+            getItem = { position -> adapterEnCours.currentList[position] },
+            onMarkDone = { taskId -> viewModel.setStatus(taskId, TaskStatus.COMPLETED) },
+            onDelete = { taskId -> viewModel.deleteTask(taskId) },
+            onCancel = { taskId -> viewModel.setStatus(taskId, TaskStatus.CANCELLED) }
+        )
+        ItemTouchHelper(callback).attachToRecyclerView(binding.rvEnCours)
+    }
+
+    // ── StateFlow collection ──────────────────────────────────────────────────
+
+    private fun collectViewModelState() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
 
                 launch {
                     viewModel.tasksUiState.collect { items ->
                         val enCours = items.filter {
-                            it.task.status == TaskStatus.DRAFT || it.task.status == TaskStatus.IN_PROGRESS
+                            it.task.status == TaskStatus.DRAFT ||
+                                    it.task.status == TaskStatus.IN_PROGRESS
                         }
                         val terminees = items.filter { it.task.status == TaskStatus.COMPLETED }
                         val annulees = items.filter { it.task.status == TaskStatus.CANCELLED }
@@ -134,15 +159,22 @@ class TasksFragment : Fragment() {
                         updateCounters(items)
                         updateProgress(items)
                         updateSectionVisibility(terminees.isNotEmpty(), annulees.isNotEmpty())
+                        // Empty state: visible only when not registered and no tasks at all
+                        val isEmpty = items.isEmpty() && !viewModel.isSessionRegistered.value
+                        binding.layoutEmpty.visibility = if (isEmpty) View.VISIBLE else View.GONE
                     }
                 }
 
                 launch {
                     viewModel.isSessionRegistered.collect { isRegistered ->
-                        binding.layoutAddTask.visibility = if (isRegistered) View.GONE else View.VISIBLE
-                        binding.btnEnregistrer.visibility = if (isRegistered) View.GONE else View.VISIBLE
-                        binding.btnReset.visibility = if (isRegistered) View.VISIBLE else View.GONE
-                        binding.tvSectionEnCours.visibility = if (isRegistered) View.VISIBLE else View.GONE
+                        binding.layoutAddTask.visibility =
+                            if (isRegistered) View.GONE else View.VISIBLE
+                        binding.btnEnregistrer.visibility =
+                            if (isRegistered) View.GONE else View.VISIBLE
+                        binding.btnReset.visibility =
+                            if (isRegistered) View.VISIBLE else View.GONE
+                        binding.tvSectionEnCours.visibility =
+                            if (isRegistered) View.VISIBLE else View.GONE
                     }
                 }
 
@@ -150,7 +182,8 @@ class TasksFragment : Fragment() {
                     viewModel.streak.collect { streak ->
                         if (streak.count > 0) {
                             binding.tvStreak.visibility = View.VISIBLE
-                            binding.tvStreak.text = getString(R.string.streak_label, streak.count, streak.badge)
+                            binding.tvStreak.text =
+                                getString(R.string.streak_label, streak.count, streak.badge)
                         } else {
                             binding.tvStreak.visibility = View.GONE
                         }
@@ -165,11 +198,24 @@ class TasksFragment : Fragment() {
                         }
                     }
                 }
+
+                launch {
+                    viewModel.deletedTask.collect { task ->
+                        task ?: return@collect
+                        Snackbar.make(
+                            binding.root,
+                            getString(R.string.task_deleted_msg),
+                            Snackbar.LENGTH_LONG
+                        ).setAction(getString(R.string.undo)) {
+                            viewModel.undoDelete()
+                        }.show()
+                    }
+                }
             }
         }
     }
 
-    // ── Mise à jour des vues dérivées ─────────────────────────────────────────
+    // ── Derived view updates ──────────────────────────────────────────────────
 
     private fun updateCounters(items: List<TaskUiState>) {
         val enCours = items.count {
@@ -190,7 +236,7 @@ class TasksFragment : Fragment() {
     }
 
     private fun updateSectionVisibility(hasTerminees: Boolean, hasAnnulees: Boolean) {
-        val isRegistered = viewModel.isSessionRegistered.value == true
+        val isRegistered = viewModel.isSessionRegistered.value
         binding.tvSectionTerminees.visibility =
             if (isRegistered && hasTerminees) View.VISIBLE else View.GONE
         binding.rvTerminees.visibility =

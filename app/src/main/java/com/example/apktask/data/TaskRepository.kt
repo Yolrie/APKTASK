@@ -1,10 +1,10 @@
 package com.example.apktask.data
 
 import android.content.Context
-import com.example.apktask.model.DaySummary
 import com.example.apktask.model.Task
-import com.example.apktask.model.TaskStatus
 import com.example.apktask.util.DateUtils
+import com.example.apktask.util.InjectionPrefs
+import com.example.apktask.widget.TaskWidgetProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -12,91 +12,91 @@ import kotlinx.coroutines.launch
 
 /**
  * Façade pour les opérations sur les tâches.
+ * Toutes les fonctions sont suspend — les appelants lancent depuis viewModelScope ou syncScope.
  *
- * Coordonne :
- *  - La persistance locale via [LocalDataSource] (SQLCipher, offline-first)
- *  - La synchronisation distante via [RemoteRepository] (si Firebase configuré)
- *
- * La sync distante est non-bloquante : l'app reste fonctionnelle hors-ligne.
- *
- * Scope de synchronisation :
- *  - [syncScope] est un [CoroutineScope] stable partagé entre toutes les instances
- *    de TaskRepository (companion object).
- *  - [SupervisorJob] : l'échec d'un job de sync n'annule pas les syncs suivantes.
- *  - La sync est "best-effort" : les exceptions sont swallowées via runCatching.
- *  - Ce scope ne doit pas être utilisé pour des opérations critiques (local-first).
+ * Injection des tâches récurrentes : voir [InjectionPrefs] pour la stratégie anti-doublon.
  */
 class TaskRepository(
-    context: Context,
+    private val context: Context,
     private val remote: RemoteRepository = MockRemoteRepository()
 ) {
     private val local = LocalDataSource.getInstance(context)
+    private val recurringRepo = RecurringTaskRepository(context)
 
-    fun loadTasks(date: String = DateUtils.today()): List<Task> =
-        local.loadTasks(date)
+    // ── Tâches par date ──────────────────────────────────────────────────────
 
-    fun saveTasks(date: String = DateUtils.today(), tasks: List<Task>) {
+    /**
+     * Charge les tâches de [date].
+     * Pour aujourd'hui, les tâches récurrentes dues sont injectées avant le retour si ce n'est pas déjà fait.
+     * La liste retournée inclut les éventuelles nouvelles tâches, sans second aller-retour en base.
+     */
+    suspend fun loadTasks(date: String = DateUtils.today()): List<Task> {
+        if (date == DateUtils.today()) {
+            val preloaded = injectDueRecurringTasksIfNeeded(date)
+            if (preloaded != null) return preloaded
+        }
+        return local.loadTasks(date)
+    }
+
+    suspend fun saveTasks(date: String = DateUtils.today(), tasks: List<Task>) {
         local.saveTasks(date, tasks)
+        TaskWidgetProvider.refreshAll(context)
         if (remote.isAvailable()) {
             syncScope.launch {
                 runCatching { remote.syncDayTasks(date, tasks) }
-                // Exception swallowed : la sync est optionnelle, le local est source de vérité
             }
         }
     }
 
-    fun loadSessionRegistered(date: String = DateUtils.today()): Boolean =
+    suspend fun loadSessionRegistered(date: String = DateUtils.today()): Boolean =
         local.loadSessionRegistered(date)
 
-    fun saveSessionRegistered(date: String = DateUtils.today(), registered: Boolean) =
+    suspend fun saveSessionRegistered(date: String = DateUtils.today(), registered: Boolean) =
         local.saveSessionRegistered(date, registered)
 
-    fun clearDay(date: String = DateUtils.today()) =
+    suspend fun clearDay(date: String = DateUtils.today()) =
         local.clearDay(date)
 
-    fun clearAll() =
+    suspend fun clearAll() =
         local.clearAll()
 
-    // ── Bilans journaliers ──────────────────────────────────────────────────
+    // ── Injection des tâches récurrentes ─────────────────────────────────────
 
-    fun saveDaySummaryFromTasks(date: String, tasks: List<Task>, streakCount: Int) {
-        if (tasks.isEmpty()) return
-        val completed = tasks.count { it.status == TaskStatus.COMPLETED }
-        val cancelled = tasks.count { it.status == TaskStatus.CANCELLED }
-        val total = tasks.size
-        val percent = if (total > 0) (completed * 100) / total else 0
-        val summary = DaySummary(
-            date = date,
-            totalTasks = total,
-            completedTasks = completed,
-            cancelledTasks = cancelled,
-            completionPercent = percent,
-            allDone = completed == total,
-            streakAtDay = streakCount
-        )
-        local.saveDaySummary(summary)
+    /**
+     * Injecte les tâches récurrentes dues pour [date], fusionne avec les existantes et retourne la liste finale.
+     * IDs calculés à partir du max existant — les tâches du jour n'utilisent pas l'AUTOINCREMENT Room.
+     * Appelé par [MidnightResetWorker] pour pré-peupler le nouveau jour.
+     */
+    suspend fun injectDueRecurringTasks(date: String = DateUtils.today()): List<Task> {
+        val existing = local.loadTasks(date)
+        val dueTasks = recurringRepo.getDueForDate(date)
+        if (dueTasks.isEmpty()) return existing
+
+        val baseId = existing.maxOfOrNull { it.id } ?: 0
+        val injected = dueTasks.mapIndexed { index, recurring ->
+            Task(
+                id = baseId + index + 1,
+                title = recurring.title,
+                priority = recurring.priority,
+                date = date,
+                recurringTaskId = recurring.id
+            )
+        }
+        val merged = existing + injected
+        local.saveTasks(date, merged)
+        TaskWidgetProvider.refreshAll(context)
+        return merged
     }
 
-    fun loadDaySummaries(): List<DaySummary> =
-        local.loadDaySummaries()
-
-    fun loadRecentDaySummaries(limit: Int = 30): List<DaySummary> =
-        local.loadRecentDaySummaries(limit)
-
-    fun daySummaryCount(): Int = local.daySummaryCount()
-    fun averageCompletionPercent(): Int = local.averageCompletionPercent()
-    fun perfectDaysCount(): Int = local.perfectDaysCount()
+    /** Retourne null si l'injection du jour est déjà faite (garde [InjectionPrefs]), sinon injecte et retourne la liste. */
+    private suspend fun injectDueRecurringTasksIfNeeded(date: String): List<Task>? {
+        if (InjectionPrefs.getLastInjectionDate(context) == date) return null
+        val result = injectDueRecurringTasks(date)
+        InjectionPrefs.setLastInjectionDate(context, date)
+        return result
+    }
 
     companion object {
-        /**
-         * Scope stable pour les syncs distantes en arrière-plan.
-         *
-         * Utilisation d'un companion object (durée de vie = classe) plutôt que
-         * de créer un nouveau CoroutineScope(Dispatchers.IO) à chaque saveTasks() :
-         *  - Évite la création/destruction répétée de coroutine contexts
-         *  - SupervisorJob : échec isolé par job, pas d'annulation en cascade
-         *  - Dispatchers.IO : thread pool optimisé pour les I/O réseau
-         */
         private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     }
 }

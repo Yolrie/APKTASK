@@ -2,64 +2,68 @@ package com.example.apktask.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.View
 import android.view.WindowManager
-import android.view.inputmethod.InputMethodManager
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.setupWithNavController
 import com.example.apktask.R
+import com.example.apktask.data.LocalDataSource
 import com.example.apktask.databinding.ActivityMainBinding
-import com.example.apktask.model.TaskStatus
+import com.example.apktask.util.BiometricHelper
 import com.example.apktask.util.NotificationHelper
 import com.example.apktask.util.WorkScheduler
-import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 
 /**
- * Activité principale — rôle limité à :
- *  1. Lier les vues au ViewModel (collecte les StateFlow)
- *  2. Transmettre les actions utilisateur au ViewModel
- *  3. Mettre à jour l'interface en réponse aux StateFlow
- *  4. Gérer la navigation entre les onglets Tâches et Historique
+ * Shell activity — hosts the NavHostFragment and wires up bottom navigation.
  *
- * Sécurité :
- *  - FLAG_SECURE positionné AVANT super.onCreate() pour garantir qu'aucune
- *    frame du contenu ne soit jamais exposée (captures d'écran, switcher,
- *    enregistrement d'écran, Accessibility Services malveillants).
+ * Responsibilities:
+ *  1. Enforce FLAG_SECURE before super.onCreate() (no frame ever exposed).
+ *  2. Set up NavController ↔ BottomNavigationView.
+ *  3. Bootstrap WorkManager and notification channel (idempotent).
+ *  4. Request POST_NOTIFICATIONS permission on Android 13+.
+ *  5. Biometric lock gate: if the user enabled biometric lock, prompt on
+ *     every resume after the app was backgrounded for > LOCK_TIMEOUT_MS.
  *
- * Collection StateFlow :
- *  - repeatOnLifecycle(STARTED) : les collectors sont suspendus quand l'activité
- *    passe en arrière-plan (STOPPED) et reprennent à STARTED — évite les mises
- *    à jour UI sur une vue non visible, sans fuite mémoire.
+ * Biometric lock design:
+ *  - navHostFragment + bottomNav hidden (not just disabled) when locked.
+ *    FLAG_SECURE already prevents screenshots, but hiding the content
+ *    ensures nothing is visible while the system prompt is shown.
+ *  - Re-lock on onStop so every background-to-foreground transition
+ *    triggers a fresh auth (unless within LOCK_TIMEOUT_MS).
+ *  - LOCK_TIMEOUT_MS = 30 s: graceful for screen rotations and brief
+ *    task switches without requiring repeated auth.
  *
- * Aucune logique métier ne doit résider ici.
+ * Biometric setting loading:
+ *  - [biometricLockEnabled] is refreshed via [lifecycleScope] on each [onResume].
+ *    This picks up changes made in ProfileFragment without requiring a restart.
+ *  - [onStop] uses the cached value (always set before [onResume] completes).
  */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private val viewModel: TaskViewModel by viewModels()
-
-    private lateinit var adapterEnCours: TaskAdapter
-    private lateinit var adapterTerminees: TaskAdapter
-    private lateinit var adapterAnnulees: TaskAdapter
-
-    private var historyFragment: HistoryFragment? = null
 
     private val notifPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { /* NotificationWorker vérifie la permission au moment de s'exécuter */ }
+    ) { /* granted or denied — NotificationWorker checks at runtime */ }
 
-    // ── Cycle de vie ─────────────────────────────────────────────────────────
+    // ── Biometric lock state ──────────────────────────────────────────────────
+
+    private var isUnlocked = false
+    private var backgroundedAtMs = 0L
+
+    /** Cached value loaded from Room via [lifecycleScope] on each [onResume]. */
+    private var biometricLockEnabled = false
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
         window.setFlags(
@@ -72,219 +76,76 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setupEdgeToEdge()
-        setupRecyclerViews()
-        setupClickListeners()
-        setupBottomNavigation()
-        collectViewModelState()
-
-        binding.tvMotivation.text = viewModel.motivationalMessage
+        setupNavigation()
 
         NotificationHelper.createChannel(this)
         WorkScheduler.init(this)
         requestNotificationPermission()
     }
 
-    // ── Configuration initiale ────────────────────────────────────────────────
+    override fun onStop() {
+        super.onStop()
+        backgroundedAtMs = SystemClock.elapsedRealtime()
+        if (isBiometricLockEnabled()) isUnlocked = false
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Capture elapsed before the suspend so the comparison is accurate.
+        val elapsed = SystemClock.elapsedRealtime() - backgroundedAtMs
+        lifecycleScope.launch {
+            biometricLockEnabled = LocalDataSource.getInstance(this@MainActivity)
+                .loadProfile().biometricLockEnabled
+            if (!isUnlocked && elapsed > LOCK_TIMEOUT_MS && isBiometricLockEnabled()) {
+                showLockScreen()
+            }
+        }
+    }
+
+    // ── Setup ─────────────────────────────────────────────────────────────────
 
     private fun setupEdgeToEdge() {
-        // Root view: top + sides only — no bottom padding (bottom nav handles it)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(bars.left, bars.top, bars.right, 0)
-            insets
-        }
-        // Bottom nav: absorbs system nav bar inset as its own bottom padding
-        ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavigation) { v, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(0, 0, 0, bars.bottom)
+            v.setPadding(bars.left, 0, bars.right, 0)
+            binding.bottomNav.setPadding(0, 0, 0, bars.bottom)
             insets
         }
     }
 
-    private fun setupRecyclerViews() {
-        adapterEnCours = TaskAdapter(
-            onStartEdit = { viewModel.startEditing(it) },
-            onSaveEdit = { id, title -> viewModel.saveEdit(id, title) },
-            onCancelEdit = { viewModel.cancelEditing(it) },
-            onDelete = { viewModel.deleteTask(it) },
-            onMarkDone = { viewModel.setStatus(it, TaskStatus.COMPLETED) },
-            onMarkCancelled = { viewModel.setStatus(it, TaskStatus.CANCELLED) }
+    private fun setupNavigation() {
+        val navHost = supportFragmentManager
+            .findFragmentById(R.id.navHostFragment) as NavHostFragment
+        val navController = navHost.navController
+        binding.bottomNav.setupWithNavController(navController)
+    }
+
+    // ── Biometric lock gate ───────────────────────────────────────────────────
+
+    /** Uses the cached [biometricLockEnabled] — always current after each [onResume]. */
+    private fun isBiometricLockEnabled() = biometricLockEnabled && BiometricHelper.isAvailable(this)
+
+    private fun showLockScreen() {
+        binding.navHostFragment.visibility = View.INVISIBLE
+        binding.bottomNav.visibility = View.INVISIBLE
+
+        BiometricHelper.prompt(
+            activity = this,
+            title = getString(R.string.biometric_prompt_title),
+            subtitle = getString(R.string.biometric_prompt_subtitle),
+            onSuccess = {
+                isUnlocked = true
+                binding.navHostFragment.visibility = View.VISIBLE
+                binding.bottomNav.visibility = View.VISIBLE
+            },
+            onError = { finish() }
         )
-
-        adapterTerminees = TaskAdapter()
-        adapterAnnulees = TaskAdapter()
-
-        binding.rvEnCours.apply {
-            layoutManager = LinearLayoutManager(this@MainActivity)
-            adapter = adapterEnCours
-            isNestedScrollingEnabled = false
-        }
-
-        binding.rvTerminees.apply {
-            layoutManager = LinearLayoutManager(this@MainActivity)
-            adapter = adapterTerminees
-            isNestedScrollingEnabled = false
-        }
-
-        binding.rvAnnulees.apply {
-            layoutManager = LinearLayoutManager(this@MainActivity)
-            adapter = adapterAnnulees
-            isNestedScrollingEnabled = false
-        }
     }
 
-    private fun setupClickListeners() {
-        binding.btnAddTask.setOnClickListener {
-            val input = binding.etNewTask.text?.toString().orEmpty()
-            viewModel.addTask(input)
-            if (viewModel.errorMessage.value == null) {
-                binding.etNewTask.text?.clear()
-                hideKeyboard()
-            }
-        }
-
-        binding.btnEnregistrer.setOnClickListener {
-            viewModel.registerSession()
-            hideKeyboard()
-        }
-
-        binding.btnReset.setOnClickListener {
-            viewModel.resetAll()
-        }
-    }
-
-    // ── Navigation inférieure ──────────────────────────────────────────────────
-
-    private fun setupBottomNavigation() {
-        binding.bottomNavigation.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_tasks -> {
-                    showTasksView()
-                    true
-                }
-                R.id.nav_history -> {
-                    showHistoryView()
-                    true
-                }
-                else -> false
-            }
-        }
-        // Default: select Tasks tab on launch
-        binding.bottomNavigation.selectedItemId = R.id.nav_tasks
-    }
-
-    private fun showTasksView() {
-        binding.layoutTasksContent.visibility = View.VISIBLE
-        binding.fragmentContainer.visibility = View.GONE
-        hideKeyboard()
-    }
-
-    private fun showHistoryView() {
-        binding.layoutTasksContent.visibility = View.GONE
-        binding.fragmentContainer.visibility = View.VISIBLE
-        hideKeyboard()
-
-        if (historyFragment == null) {
-            historyFragment = HistoryFragment()
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.fragmentContainer, historyFragment!!)
-                .commit()
-        }
-        // HistoryFragment refreshes automatically in onResume()
-    }
-
-    // ── Collection des StateFlow ──────────────────────────────────────────────
-
-    private fun collectViewModelState() {
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-
-                launch {
-                    viewModel.tasksUiState.collect { items ->
-                        val enCours = items.filter {
-                            it.task.status == TaskStatus.DRAFT ||
-                                    it.task.status == TaskStatus.IN_PROGRESS
-                        }
-                        val terminees = items.filter { it.task.status == TaskStatus.COMPLETED }
-                        val annulees = items.filter { it.task.status == TaskStatus.CANCELLED }
-
-                        adapterEnCours.submitList(enCours)
-                        adapterTerminees.submitList(terminees)
-                        adapterAnnulees.submitList(annulees)
-
-                        updateCounters(items)
-                        updateProgress(items)
-                        updateSectionVisibility(terminees.isNotEmpty(), annulees.isNotEmpty())
-                    }
-                }
-
-                launch {
-                    viewModel.isSessionRegistered.collect { isRegistered ->
-                        binding.layoutAddTask.visibility =
-                            if (isRegistered) View.GONE else View.VISIBLE
-                        binding.btnEnregistrer.visibility =
-                            if (isRegistered) View.GONE else View.VISIBLE
-                        binding.btnReset.visibility =
-                            if (isRegistered) View.VISIBLE else View.GONE
-
-                        binding.tvSectionEnCours.visibility =
-                            if (isRegistered) View.VISIBLE else View.GONE
-                        binding.tvSectionTerminees.visibility =
-                            if (isRegistered) View.VISIBLE else View.GONE
-                        binding.tvSectionAnnulees.visibility =
-                            if (isRegistered) View.VISIBLE else View.GONE
-                    }
-                }
-
-                launch {
-                    viewModel.errorMessage.collect { message ->
-                        message?.let {
-                            Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
-                            viewModel.clearError()
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // ── Mise à jour des vues dérivées ─────────────────────────────────────────
-
-    private fun updateCounters(items: List<TaskUiState>) {
-        val enCours = items.count {
-            it.task.status == TaskStatus.DRAFT || it.task.status == TaskStatus.IN_PROGRESS
-        }
-        val terminees = items.count { it.task.status == TaskStatus.COMPLETED }
-        val annulees = items.count { it.task.status == TaskStatus.CANCELLED }
-
-        binding.tvCounterEnCours.text = getString(R.string.counter_en_cours, enCours)
-        binding.tvCounterTerminees.text = getString(R.string.counter_terminees, terminees)
-        binding.tvCounterAnnulees.text = getString(R.string.counter_annulees, annulees)
-    }
-
-    private fun updateProgress(items: List<TaskUiState>) {
-        val total = items.size
-        val done = items.count { it.task.status == TaskStatus.COMPLETED }
-        val progress = if (total > 0) (done * 100) / total else 0
-        binding.progressBar.progress = progress
-    }
-
-    private fun updateSectionVisibility(hasTerminees: Boolean, hasAnnulees: Boolean) {
-        val isRegistered = viewModel.isSessionRegistered.value
-        binding.tvSectionTerminees.visibility =
-            if (isRegistered && hasTerminees) View.VISIBLE else View.GONE
-        binding.tvSectionAnnulees.visibility =
-            if (isRegistered && hasAnnulees) View.VISIBLE else View.GONE
-        binding.rvTerminees.visibility =
-            if (isRegistered && hasTerminees) View.VISIBLE else View.GONE
-        binding.rvAnnulees.visibility =
-            if (isRegistered && hasAnnulees) View.VISIBLE else View.GONE
-    }
-
-    // ── Utilitaires ───────────────────────────────────────────────────────────
+    // ── Permissions ───────────────────────────────────────────────────────────
 
     private fun requestNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED
         ) {
@@ -292,8 +153,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun hideKeyboard() {
-        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-        currentFocus?.let { imm.hideSoftInputFromWindow(it.windowToken, 0) }
+    companion object {
+        private const val LOCK_TIMEOUT_MS = 30_000L
     }
 }

@@ -4,20 +4,17 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.apktask.data.db.dao.DaySummaryDao
-import com.example.apktask.data.db.dao.FriendDao
 import com.example.apktask.data.db.dao.ProfileDao
+import com.example.apktask.data.db.dao.RecurringTaskDao
 import com.example.apktask.data.db.dao.SessionDao
 import com.example.apktask.data.db.dao.StreakDao
 import com.example.apktask.data.db.dao.TaskDao
-import com.example.apktask.data.db.entity.DaySummaryEntity
-import com.example.apktask.data.db.entity.FriendEntity
 import com.example.apktask.data.db.entity.ProfileEntity
+import com.example.apktask.data.db.entity.RecurringTaskEntity
 import com.example.apktask.data.db.entity.SessionEntity
 import com.example.apktask.data.db.entity.StreakEntity
 import com.example.apktask.data.db.entity.TaskEntity
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
+import com.example.apktask.data.db.migration.Migrations
 import net.sqlcipher.database.SupportFactory
 
 /**
@@ -29,10 +26,11 @@ import net.sqlcipher.database.SupportFactory
  *    SQLCipher AES-256 + Android Keystore AES-256-GCM).
  *  - La passphrase locale est zerosée après ouverture de la base.
  *
- * [allowMainThreadQueries] :
- *  - Autorisé ici car les appels depuis les ViewModels sont synchrones dans init{}.
- *  - TODO : migrer vers des appels suspendants (Dispatchers.IO) dans une prochaine
- *    itération pour supprimer cette tolérance.
+ * Accès DB :
+ *  - Tous les DAOs sont déclarés `suspend fun` — Room génère des implémentations
+ *    coroutine-aware et garantit que les requêtes s'exécutent sur un thread I/O.
+ *  - [allowMainThreadQueries] est intentionnellement absent : tout appel accidentel
+ *    depuis le thread principal lèvera une IllegalStateException détectable en dev.
  *
  * [exportSchema] = false :
  *  - Le schéma n'est pas exporté dans les assets → pas d'exposition en production.
@@ -46,11 +44,10 @@ import net.sqlcipher.database.SupportFactory
         SessionEntity::class,
         ProfileEntity::class,
         StreakEntity::class,
-        FriendEntity::class,
-        DaySummaryEntity::class
+        RecurringTaskEntity::class
     ],
-    version = 2,
-    exportSchema = false
+    version = 5,
+    exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -58,8 +55,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun profileDao(): ProfileDao
     abstract fun streakDao(): StreakDao
-    abstract fun friendDao(): FriendDao
-    abstract fun daySummaryDao(): DaySummaryDao
+    abstract fun recurringTaskDao(): RecurringTaskDao
 
     companion object {
         private const val DB_NAME = "apktask_v3.db"
@@ -72,34 +68,18 @@ abstract class AppDatabase : RoomDatabase() {
                 INSTANCE ?: buildDatabase(context.applicationContext).also { INSTANCE = it }
             }
 
-        private val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("""
-                    CREATE TABLE IF NOT EXISTS `day_summaries` (
-                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                        `date` TEXT NOT NULL,
-                        `total_tasks` INTEGER NOT NULL,
-                        `completed_tasks` INTEGER NOT NULL,
-                        `cancelled_tasks` INTEGER NOT NULL,
-                        `completion_percent` INTEGER NOT NULL,
-                        `all_done` INTEGER NOT NULL,
-                        `streak_at_day` INTEGER NOT NULL
-                    )
-                """.trimIndent())
-                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_day_summaries_date` ON `day_summaries` (`date`)")
-            }
-        }
-
         private fun buildDatabase(context: Context): AppDatabase {
             // Récupération de la passphrase (32 octets, déchiffrée depuis EncryptedSharedPreferences)
             val passphrase = DatabaseKeyManager.getOrCreatePassphrase(context)
             return try {
                 Room.databaseBuilder(context, AppDatabase::class.java, DB_NAME)
                     .openHelperFactory(SupportFactory(passphrase))
-                    .addMigrations(MIGRATION_1_2)
-                    // Les ViewModels appellent les DAOs de façon synchrone dans init{} —
-                    // à supprimer quand les appels seront migrés en suspend fun.
-                    .allowMainThreadQueries()
+                    .addMigrations(
+                        Migrations.MIGRATION_1_2,
+                        Migrations.MIGRATION_2_3,
+                        Migrations.MIGRATION_3_4,
+                        Migrations.MIGRATION_4_5
+                    )
                     .build()
             } finally {
                 // Zérosage de la copie locale de la passphrase

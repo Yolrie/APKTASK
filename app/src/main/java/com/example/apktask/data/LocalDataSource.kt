@@ -1,11 +1,12 @@
 package com.example.apktask.data
 
 import android.content.Context
+import androidx.room.withTransaction
 import com.example.apktask.data.db.AppDatabase
+import com.example.apktask.data.db.entity.RecurringTaskEntity
 import com.example.apktask.data.db.entity.SessionEntity
 import com.example.apktask.data.db.entity.toEntity
-import com.example.apktask.model.DaySummary
-import com.example.apktask.model.FriendProgress
+import com.example.apktask.model.RecurringTask
 import com.example.apktask.model.Streak
 import com.example.apktask.model.Task
 import com.example.apktask.model.UserProfile
@@ -13,32 +14,17 @@ import com.example.apktask.model.UserProfile
 /**
  * Source de données locale unique — toutes les données chiffrées au repos via SQLCipher.
  *
- * Remplacement de l'ancienne implémentation basée sur EncryptedSharedPreferences + JSON :
+ * Migration off-main-thread :
+ *  - Toutes les fonctions sont désormais `suspend`.
+ *  - Les transactions utilisent [AppDatabase.withTransaction] (coroutine-aware)
+ *    au lieu de [AppDatabase.runInTransaction] (bloquant).
+ *  - [AppDatabase.allowMainThreadQueries()] est supprimé — toute tentative d'appel
+ *    depuis le thread principal lèvera une IllegalStateException, détectable en dev.
  *
- *  | Avant (v3)                      | Maintenant (v3.1+)                        |
- *  |---------------------------------|-------------------------------------------|
- *  | EncryptedSharedPreferences      | Room + SQLCipher AES-256 page-level       |
- *  | Sérialisation JSON manuelle     | Entités typées + DAO Room                 |
- *  | Clés String "tasks_YYYY-MM-DD"  | Table `tasks` avec index sur `date`       |
- *  | Pas d'index, full scan          | Index SQL natif sur les colonnes requêtées|
- *
- * Sécurité :
- *  - [AppDatabase] ouvre la base via [net.sqlcipher.database.SupportFactory] :
- *    chiffrement AES-256 appliqué à chaque page SQLite (~4 Ko).
- *  - La passphrase SQLCipher est gérée par [com.example.apktask.data.db.DatabaseKeyManager]
- *    (générée une fois, stockée chiffrée dans un EncryptedSharedPreferences dédié).
- *  - Singleton thread-safe : une seule instance d'AppDatabase dans la JVM.
- *  - applicationContext uniquement : pas de fuite d'Activity.
- *  - Aucune donnée utilisateur dans les logs.
- *
- * Atomicité :
- *  - [saveTasks], [saveFriends], [clearDay], [clearAll] s'exécutent dans une
- *    transaction SQLite via [androidx.room.RoomDatabase.runInTransaction].
- *  - Si l'app crash entre le DELETE et l'INSERT, SQLite annule l'opération entière —
- *    aucune fenêtre de corruption ou de données partielles.
- *
- * Note : [AppDatabase.allowMainThreadQueries()] est actif — les appels depuis les
- * init{} des ViewModels sont synchrones. Migration en suspend fun prévue.
+ * Atomicité préservée :
+ *  - [saveTasks], [clearDay], [clearAll] s'exécutent dans une
+ *    transaction suspend via [withTransaction] — le comportement "tout ou rien" est
+ *    identique à avant, mais sans bloquer le thread principal.
  */
 class LocalDataSource private constructor(context: Context) {
 
@@ -47,31 +33,30 @@ class LocalDataSource private constructor(context: Context) {
     private val sessionDao = db.sessionDao()
     private val profileDao = db.profileDao()
     private val streakDao = db.streakDao()
-    private val friendDao = db.friendDao()
-    private val daySummaryDao = db.daySummaryDao()
+    private val recurringTaskDao = db.recurringTaskDao()
 
     // ── Tâches par date ──────────────────────────────────────────────────────
 
-    fun saveTasks(date: String, tasks: List<Task>) {
-        db.runInTransaction {
+    suspend fun saveTasks(date: String, tasks: List<Task>) {
+        db.withTransaction {
             taskDao.deleteForDate(date)
             taskDao.insertAll(tasks.map { it.toEntity() })
         }
     }
 
-    fun loadTasks(date: String): List<Task> =
+    suspend fun loadTasks(date: String): List<Task> =
         taskDao.getTasksForDate(date).map { it.toTask() }
 
-    fun saveSessionRegistered(date: String, isRegistered: Boolean) {
+    suspend fun saveSessionRegistered(date: String, isRegistered: Boolean) {
         sessionDao.insert(SessionEntity(date = date, isRegistered = isRegistered))
     }
 
-    fun loadSessionRegistered(date: String): Boolean =
+    suspend fun loadSessionRegistered(date: String): Boolean =
         sessionDao.isRegistered(date)
 
     /** Supprime les tâches et la session d'un jour donné (appelé par MidnightResetWorker). */
-    fun clearDay(date: String) {
-        db.runInTransaction {
+    suspend fun clearDay(date: String) {
+        db.withTransaction {
             taskDao.deleteForDate(date)
             sessionDao.deleteForDate(date)
         }
@@ -79,58 +64,47 @@ class LocalDataSource private constructor(context: Context) {
 
     // ── Profil utilisateur ───────────────────────────────────────────────────
 
-    fun saveProfile(profile: UserProfile) {
+    suspend fun saveProfile(profile: UserProfile) {
         profileDao.save(profile.toEntity())
     }
 
-    fun loadProfile(): UserProfile =
+    suspend fun loadProfile(): UserProfile =
         profileDao.get()?.toProfile() ?: UserProfile()
 
     // ── Streak ───────────────────────────────────────────────────────────────
 
-    fun saveStreak(streak: Streak) {
+    suspend fun saveStreak(streak: Streak) {
         streakDao.save(streak.toEntity())
     }
 
-    fun loadStreak(): Streak =
+    suspend fun loadStreak(): Streak =
         streakDao.get()?.toStreak() ?: Streak()
 
-    // ── Amis ─────────────────────────────────────────────────────────────────
+    // ── Tâches récurrentes (templates) ───────────────────────────────────────
 
-    fun saveFriends(friends: List<FriendProgress>) {
-        db.runInTransaction {
-            friendDao.deleteAll()
-            friendDao.insertAll(friends.map { it.toEntity() })
-        }
-    }
+    /** Insère ou remplace un template et retourne son id auto-généré. */
+    suspend fun saveRecurringTask(task: RecurringTask): Int =
+        recurringTaskDao.insert(task.toEntity()).toInt()
 
-    fun loadFriends(): List<FriendProgress> =
-        friendDao.getAll().map { it.toFriendProgress() }
+    suspend fun loadActiveRecurringTasks(): List<RecurringTask> =
+        recurringTaskDao.getActive().map(RecurringTaskEntity::toRecurringTask)
 
-    fun deleteFriend(userId: String) {
-        friendDao.deleteById(userId)
-    }
+    suspend fun loadAllRecurringTasks(): List<RecurringTask> =
+        recurringTaskDao.getAll().map(RecurringTaskEntity::toRecurringTask)
 
-    // ── Bilans journaliers ──────────────────────────────────────────────────
+    suspend fun updateRecurringTask(task: RecurringTask) =
+        recurringTaskDao.update(task.toEntity())
 
-    fun saveDaySummary(summary: DaySummary) {
-        daySummaryDao.insert(summary.toEntity())
-    }
+    /** Soft-delete : désactive le template sans le supprimer de la base. */
+    suspend fun setRecurringTaskActive(id: Int, active: Boolean) =
+        recurringTaskDao.setActive(id, active)
 
-    fun loadDaySummaries(): List<DaySummary> =
-        daySummaryDao.getAll().map { it.toDaySummary() }
+    suspend fun deleteRecurringTask(id: Int) =
+        recurringTaskDao.deleteById(id)
 
-    fun loadRecentDaySummaries(limit: Int): List<DaySummary> =
-        daySummaryDao.getRecent(limit).map { it.toDaySummary() }
-
-    fun loadDaySummary(date: String): DaySummary? =
-        daySummaryDao.getForDate(date)?.toDaySummary()
-
-    fun daySummaryCount(): Int = daySummaryDao.count()
-
-    fun averageCompletionPercent(): Int = daySummaryDao.averageCompletionPercent()
-
-    fun perfectDaysCount(): Int = daySummaryDao.countPerfectDays()
+    /** Retourne les IDs des templates récurrents déjà injectés pour [date] — verrou anti-doublon. */
+    suspend fun loadInjectedRecurringTaskIds(date: String): Set<Int> =
+        taskDao.getInjectedRecurringTaskIdsForDate(date).toSet()
 
     // ── Réinitialisation ─────────────────────────────────────────────────────
 
@@ -138,8 +112,8 @@ class LocalDataSource private constructor(context: Context) {
      * Supprime toutes les tâches et sessions (bouton "Reset" de l'utilisateur).
      * Ne touche pas au profil, au streak ni aux amis — données de long terme.
      */
-    fun clearAll() {
-        db.runInTransaction {
+    suspend fun clearAll() {
+        db.withTransaction {
             taskDao.deleteAll()
             sessionDao.deleteAll()
         }

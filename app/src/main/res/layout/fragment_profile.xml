@@ -1,480 +1,484 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+<androidx.core.widget.NestedScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background">
+    android:clipToPadding="false"
+    android:paddingBottom="@dimen/space_xl">
 
-    <ScrollView
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:paddingBottom="16dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/space_md"
+        android:paddingTop="@dimen/space_md">
 
-        <LinearLayout
+        <!-- ── Identity ──────────────────────────────────────────────────── -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/profile_section_identity"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textColor="?attr/colorPrimary" />
+
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="16dp">
+            android:layout_marginTop="@dimen/space_sm"
+            app:cardCornerRadius="@dimen/card_corner_radius"
+            app:cardElevation="@dimen/card_elevation"
+            app:strokeWidth="0dp">
 
-            <!-- Title -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Profil"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:fontFamily="sans-serif-medium"
-                android:gravity="center"
-                android:paddingBottom="16dp"
-                android:textColor="@color/text_primary" />
-
-            <!-- Avatar Section -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:gravity="center_horizontal"
-                android:layout_marginBottom="16dp">
+                android:padding="@dimen/space_md">
 
-                <FrameLayout
-                    android:layout_width="72dp"
-                    android:layout_height="72dp"
-                    android:layout_marginBottom="12dp">
-
-                    <View
-                        android:id="@+id/viewAvatarBg"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="@drawable/bg_avatar_circle" />
-
-                    <TextView
-                        android:id="@+id/tvAvatarLetter"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:textSize="32sp"
-                        android:textStyle="bold"
-                        android:textColor="#000000" />
-
-                </FrameLayout>
-
-                <!-- Color picker row -->
+                <!-- Avatar row -->
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:gravity="center">
+                    android:gravity="center_vertical">
 
-                    <View
-                        android:id="@+id/avatarColor0"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_margin="4dp"
-                        android:background="@color/avatar_0" />
+                    <FrameLayout
+                        android:layout_width="@dimen/avatar_size"
+                        android:layout_height="@dimen/avatar_size">
 
-                    <View
-                        android:id="@+id/avatarColor1"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_margin="4dp"
-                        android:background="@color/avatar_1" />
+                        <View
+                            android:id="@+id/viewAvatarBg"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/bg_avatar_circle" />
 
-                    <View
-                        android:id="@+id/avatarColor2"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_margin="4dp"
-                        android:background="@color/avatar_2" />
+                        <TextView
+                            android:id="@+id/tvAvatarLetter"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center"
+                            android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+                            android:textColor="@android:color/white" />
 
-                    <View
-                        android:id="@+id/avatarColor3"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_margin="4dp"
-                        android:background="@color/avatar_3" />
+                    </FrameLayout>
 
-                    <View
-                        android:id="@+id/avatarColor4"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_margin="4dp"
-                        android:background="@color/avatar_4" />
+                    <!-- Color picker -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="@dimen/space_md"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
 
-                    <View
-                        android:id="@+id/avatarColor5"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_margin="4dp"
-                        android:background="@color/avatar_5" />
+                        <View android:id="@+id/avatarColor0"
+                            android:layout_width="@dimen/avatar_color_btn"
+                            android:layout_height="@dimen/avatar_color_btn"
+                            android:background="@drawable/bg_avatar_circle"
+                            android:backgroundTint="@color/avatar_0"
+                            android:layout_marginEnd="@dimen/space_xs" />
+                        <View android:id="@+id/avatarColor1"
+                            android:layout_width="@dimen/avatar_color_btn"
+                            android:layout_height="@dimen/avatar_color_btn"
+                            android:background="@drawable/bg_avatar_circle"
+                            android:backgroundTint="@color/avatar_1"
+                            android:layout_marginEnd="@dimen/space_xs" />
+                        <View android:id="@+id/avatarColor2"
+                            android:layout_width="@dimen/avatar_color_btn"
+                            android:layout_height="@dimen/avatar_color_btn"
+                            android:background="@drawable/bg_avatar_circle"
+                            android:backgroundTint="@color/avatar_2"
+                            android:layout_marginEnd="@dimen/space_xs" />
+                        <View android:id="@+id/avatarColor3"
+                            android:layout_width="@dimen/avatar_color_btn"
+                            android:layout_height="@dimen/avatar_color_btn"
+                            android:background="@drawable/bg_avatar_circle"
+                            android:backgroundTint="@color/avatar_3"
+                            android:layout_marginEnd="@dimen/space_xs" />
+                        <View android:id="@+id/avatarColor4"
+                            android:layout_width="@dimen/avatar_color_btn"
+                            android:layout_height="@dimen/avatar_color_btn"
+                            android:background="@drawable/bg_avatar_circle"
+                            android:backgroundTint="@color/avatar_4"
+                            android:layout_marginEnd="@dimen/space_xs" />
+                        <View android:id="@+id/avatarColor5"
+                            android:layout_width="@dimen/avatar_color_btn"
+                            android:layout_height="@dimen/avatar_color_btn"
+                            android:background="@drawable/bg_avatar_circle"
+                            android:backgroundTint="@color/avatar_5"
+                            android:layout_marginEnd="@dimen/space_xs" />
+                        <View android:id="@+id/avatarColor6"
+                            android:layout_width="@dimen/avatar_color_btn"
+                            android:layout_height="@dimen/avatar_color_btn"
+                            android:background="@drawable/bg_avatar_circle"
+                            android:backgroundTint="@color/avatar_6"
+                            android:layout_marginEnd="@dimen/space_xs" />
+                        <View android:id="@+id/avatarColor7"
+                            android:layout_width="@dimen/avatar_color_btn"
+                            android:layout_height="@dimen/avatar_color_btn"
+                            android:background="@drawable/bg_avatar_circle"
+                            android:backgroundTint="@color/avatar_7" />
 
-                    <View
-                        android:id="@+id/avatarColor6"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_margin="4dp"
-                        android:background="@color/avatar_6" />
+                    </LinearLayout>
 
-                    <View
-                        android:id="@+id/avatarColor7"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_margin="4dp"
-                        android:background="@color/avatar_7" />
+                </LinearLayout>
+
+                <!-- Display name -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_md"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
+                    android:hint="@string/profile_name_hint">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etDisplayName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPersonName|textCapWords"
+                        android:maxLength="30"
+                        android:imeOptions="actionDone" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSaveName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:text="@string/btn_save_name" />
+
+                <!-- Friend code -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="@dimen/space_md">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/profile_friend_code_label"
+                            android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+
+                        <TextView
+                            android:id="@+id/tvFriendCode"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                            android:textColor="?attr/colorPrimary"
+                            android:fontFamily="monospace" />
+
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnCopyCode"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/btn_copy_code" />
 
                 </LinearLayout>
 
             </LinearLayout>
 
-            <!-- Display Name -->
-            <com.google.android.material.card.MaterialCardView
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ── Streak ──────────────────────────────────────────────────────── -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_lg"
+            android:text="@string/profile_section_streak"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textColor="?attr/colorPrimary" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_sm"
+            app:cardCornerRadius="@dimen/card_corner_radius"
+            app:cardElevation="@dimen/card_elevation"
+            app:strokeWidth="0dp">
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/surface"
-                app:strokeColor="@color/border"
-                app:strokeWidth="1dp">
+                android:orientation="horizontal"
+                android:padding="@dimen/space_md"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvStreakValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.Material3.DisplaySmall"
+                    android:textColor="?attr/colorPrimary" />
+
+                <TextView
+                    android:id="@+id/tvStreakBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/space_sm"
+                    android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall" />
+
+                <TextView
+                    android:id="@+id/tvStreakRecord"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="end"
+                    android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ── Visibility ─────────────────────────────────────────────────── -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_lg"
+            android:text="@string/profile_section_visibility"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textColor="?attr/colorPrimary" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_sm"
+            app:cardCornerRadius="@dimen/card_corner_radius"
+            app:cardElevation="@dimen/card_elevation"
+            app:strokeWidth="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/space_md">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/profile_public_label"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                        android:textColor="?attr/colorOnSurface" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchPublic"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Nom affiché"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:fontFamily="sans-serif-medium"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginBottom="8dp" />
-
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etDisplayName"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="textPersonName"
-                            android:maxLength="30"
-                            android:textColor="@color/text_primary"
-                            android:textColorHint="@color/text_tertiary" />
-
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnSaveName"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Enregistrer"
-                        android:layout_marginTop="8dp" />
+                        android:layout_height="wrap_content" />
 
                 </LinearLayout>
 
-            </com.google.android.material.card.MaterialCardView>
+                <TextView
+                    android:id="@+id/tvPublicHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_xs"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
 
-            <!-- Friend Code -->
-            <com.google.android.material.card.MaterialCardView
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ── Notifications ──────────────────────────────────────────────── -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_lg"
+            android:text="@string/profile_section_notifications"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textColor="?attr/colorPrimary" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_sm"
+            app:cardCornerRadius="@dimen/card_corner_radius"
+            app:cardElevation="@dimen/card_elevation"
+            app:strokeWidth="0dp">
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/surface"
-                app:strokeColor="@color/border"
-                app:strokeWidth="1dp">
+                android:orientation="vertical"
+                android:padding="@dimen/space_md">
 
+                <!-- Morning -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="Code ami"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:fontFamily="sans-serif-medium"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginBottom="8dp" />
-
-                    <TextView
-                        android:id="@+id/tvFriendCode"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textSize="22sp"
-                        android:textStyle="bold"
-                        android:fontFamily="sans-serif-medium"
-                        android:gravity="center"
-                        android:textColor="@color/accent"
-                        android:letterSpacing="0.15"
-                        android:paddingVertical="8dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnCopyCode"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Copier le code"
-                        android:layout_marginTop="8dp" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Visibility -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/surface"
-                app:strokeColor="@color/border"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Profil public"
-                            android:textSize="14sp"
-                            android:textStyle="bold"
-                            android:fontFamily="sans-serif-medium"
-                            android:textColor="@color/text_primary" />
-
-                        <com.google.android.material.switchmaterial.SwitchMaterial
-                            android:id="@+id/switchPublic"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
-
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/tvPublicHint"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textSize="12sp"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginTop="4dp" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Notifications -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/surface"
-                app:strokeColor="@color/border"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Rappels"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:fontFamily="sans-serif-medium"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginBottom="12dp" />
-
-                    <!-- Morning notification -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginBottom="4dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Rappel matin"
-                            android:textSize="14sp"
-                            android:textColor="@color/text_primary" />
-
-                        <com.google.android.material.switchmaterial.SwitchMaterial
-                            android:id="@+id/switchMorning"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
-
-                    </LinearLayout>
-
-                    <com.google.android.material.slider.Slider
-                        android:id="@+id/sliderMorning"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:valueFrom="5"
-                        android:valueTo="12"
-                        android:stepSize="1"
-                        android:value="8" />
+                        android:layout_weight="1"
+                        android:text="@string/notif_morning_label"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                        android:textColor="?attr/colorOnSurface" />
 
                     <TextView
                         android:id="@+id/tvMorningHour"
-                        android:layout_width="match_parent"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textSize="12sp"
-                        android:textColor="@color/text_secondary"
-                        android:gravity="center"
-                        android:layout_marginBottom="12dp" />
+                        android:layout_marginEnd="@dimen/space_sm"
+                        android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
+                        android:textColor="?attr/colorPrimary" />
 
-                    <!-- Evening notification -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginBottom="4dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Rappel soir"
-                            android:textSize="14sp"
-                            android:textColor="@color/text_primary" />
-
-                        <com.google.android.material.switchmaterial.SwitchMaterial
-                            android:id="@+id/switchEvening"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
-
-                    </LinearLayout>
-
-                    <com.google.android.material.slider.Slider
-                        android:id="@+id/sliderEvening"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:valueFrom="17"
-                        android:valueTo="23"
-                        android:stepSize="1"
-                        android:value="20" />
-
-                    <TextView
-                        android:id="@+id/tvEveningHour"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textSize="12sp"
-                        android:textColor="@color/text_secondary"
-                        android:gravity="center"
-                        android:layout_marginBottom="8dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnSaveNotifications"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Enregistrer les rappels" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchMorning"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
 
                 </LinearLayout>
 
-            </com.google.android.material.card.MaterialCardView>
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/sliderMorning"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:valueFrom="5"
+                    android:valueTo="12"
+                    android:stepSize="1"
+                    android:value="8" />
 
-            <!-- Streak -->
-            <com.google.android.material.card.MaterialCardView
+                <!-- Evening -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="@dimen/space_sm">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/notif_evening_label"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                        android:textColor="?attr/colorOnSurface" />
+
+                    <TextView
+                        android:id="@+id/tvEveningHour"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="@dimen/space_sm"
+                        android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
+                        android:textColor="?attr/colorPrimary" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchEvening"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                </LinearLayout>
+
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/sliderEvening"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:valueFrom="17"
+                    android:valueTo="22"
+                    android:stepSize="1"
+                    android:value="20" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSaveNotifications"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:text="@string/btn_save_notifications" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ── Security (biometric lock) ─────────────────────────────────── -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_lg"
+            android:text="@string/biometric_section_title"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textColor="?attr/colorPrimary" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_sm"
+            app:cardCornerRadius="@dimen/card_corner_radius"
+            app:cardElevation="@dimen/card_elevation"
+            app:strokeWidth="0dp">
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/surface"
-                app:strokeColor="@color/border"
-                app:strokeWidth="1dp">
+                android:orientation="vertical"
+                android:padding="@dimen/space_md">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp"
-                    android:gravity="center">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="Série actuelle"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:fontFamily="sans-serif-medium"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_weight="1"
+                        android:text="@string/biometric_lock_label"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                        android:textColor="?attr/colorOnSurface" />
 
-                    <TextView
-                        android:id="@+id/tvStreakValue"
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchBiometric"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textSize="40sp"
-                        android:textStyle="bold"
-                        android:fontFamily="sans-serif-medium"
-                        android:textColor="@color/accent" />
-
-                    <TextView
-                        android:id="@+id/tvStreakBadge"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textSize="24sp"
-                        android:layout_marginTop="4dp" />
-
-                    <TextView
-                        android:id="@+id/tvStreakRecord"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textSize="13sp"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginTop="8dp" />
+                        android:layout_height="wrap_content" />
 
                 </LinearLayout>
 
-            </com.google.android.material.card.MaterialCardView>
+                <TextView
+                    android:id="@+id/tvBiometricHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_xs"
+                    android:text="@string/biometric_lock_hint_off"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
 
-            <!-- Share -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnShare"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Partager ma progression"
-                android:layout_marginBottom="16dp" />
+            </LinearLayout>
 
-        </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-    </ScrollView>
+        <!-- ── Share ───────────────────────────────────────────────────────── -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnShare"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_lg"
+            android:text="@string/btn_share" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    </LinearLayout>
+
+</androidx.core.widget.NestedScrollView>
