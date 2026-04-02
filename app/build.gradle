@@ -59,6 +59,15 @@ android {
     }
 }
 
+// Export Room schema files to app/schemas/ so they can be committed and reviewed.
+// These files are used by MigrationTestHelper and serve as a human-readable audit
+// trail of all database schema changes.
+kapt {
+    arguments {
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
+}
+
 dependencies {
     implementation libs.appcompat
     implementation libs.material
@@ -94,6 +103,11 @@ dependencies {
     // implementation libs.firebase.messaging.ktx
 
     testImplementation libs.junit
+    testImplementation libs.coroutines.test
+
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
+    androidTestImplementation libs.room.testing
+    androidTestImplementation libs.androidx.test.core
+    androidTestImplementation libs.coroutines.test
 }

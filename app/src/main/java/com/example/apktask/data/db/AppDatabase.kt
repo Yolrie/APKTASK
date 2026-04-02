@@ -47,7 +47,7 @@ import net.sqlcipher.database.SupportFactory
         RecurringTaskEntity::class
     ],
     version = 5,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
 
