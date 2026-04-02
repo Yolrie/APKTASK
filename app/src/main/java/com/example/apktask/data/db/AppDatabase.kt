@@ -4,13 +4,11 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.apktask.data.db.dao.FriendDao
 import com.example.apktask.data.db.dao.ProfileDao
 import com.example.apktask.data.db.dao.RecurringTaskDao
 import com.example.apktask.data.db.dao.SessionDao
 import com.example.apktask.data.db.dao.StreakDao
 import com.example.apktask.data.db.dao.TaskDao
-import com.example.apktask.data.db.entity.FriendEntity
 import com.example.apktask.data.db.entity.ProfileEntity
 import com.example.apktask.data.db.entity.RecurringTaskEntity
 import com.example.apktask.data.db.entity.SessionEntity
@@ -46,10 +44,9 @@ import net.sqlcipher.database.SupportFactory
         SessionEntity::class,
         ProfileEntity::class,
         StreakEntity::class,
-        FriendEntity::class,
         RecurringTaskEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -58,7 +55,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun profileDao(): ProfileDao
     abstract fun streakDao(): StreakDao
-    abstract fun friendDao(): FriendDao
     abstract fun recurringTaskDao(): RecurringTaskDao
 
     companion object {
@@ -81,7 +77,8 @@ abstract class AppDatabase : RoomDatabase() {
                     .addMigrations(
                         Migrations.MIGRATION_1_2,
                         Migrations.MIGRATION_2_3,
-                        Migrations.MIGRATION_3_4
+                        Migrations.MIGRATION_3_4,
+                        Migrations.MIGRATION_4_5
                     )
                     .build()
             } finally {

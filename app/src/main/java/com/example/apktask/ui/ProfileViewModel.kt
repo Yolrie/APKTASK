@@ -137,7 +137,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             append("\uD83D\uDCCB $name sur Do.it — $date\n")
             append("\u2705 $completedToday/$totalToday tâches accomplies\n")
             if (s.count > 0) append("\uD83D\uDD25 Série : ${s.count} jour${if (s.count > 1) "s" else ""}\n")
-            append("\nRejoignez-moi sur Do.it ! Mon code ami : ${p.friendCode}")
+            append("\nTéléchargez Do.it !")
         }
     }
 

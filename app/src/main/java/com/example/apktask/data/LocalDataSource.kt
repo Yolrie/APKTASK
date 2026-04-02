@@ -6,7 +6,6 @@ import com.example.apktask.data.db.AppDatabase
 import com.example.apktask.data.db.entity.RecurringTaskEntity
 import com.example.apktask.data.db.entity.SessionEntity
 import com.example.apktask.data.db.entity.toEntity
-import com.example.apktask.model.FriendProgress
 import com.example.apktask.model.RecurringTask
 import com.example.apktask.model.Streak
 import com.example.apktask.model.Task
@@ -23,7 +22,7 @@ import com.example.apktask.model.UserProfile
  *    depuis le thread principal lèvera une IllegalStateException, détectable en dev.
  *
  * Atomicité préservée :
- *  - [saveTasks], [saveFriends], [clearDay], [clearAll] s'exécutent dans une
+ *  - [saveTasks], [clearDay], [clearAll] s'exécutent dans une
  *    transaction suspend via [withTransaction] — le comportement "tout ou rien" est
  *    identique à avant, mais sans bloquer le thread principal.
  */
@@ -34,7 +33,6 @@ class LocalDataSource private constructor(context: Context) {
     private val sessionDao = db.sessionDao()
     private val profileDao = db.profileDao()
     private val streakDao = db.streakDao()
-    private val friendDao = db.friendDao()
     private val recurringTaskDao = db.recurringTaskDao()
 
     // ── Tâches par date ──────────────────────────────────────────────────────
@@ -81,22 +79,6 @@ class LocalDataSource private constructor(context: Context) {
 
     suspend fun loadStreak(): Streak =
         streakDao.get()?.toStreak() ?: Streak()
-
-    // ── Amis ─────────────────────────────────────────────────────────────────
-
-    suspend fun saveFriends(friends: List<FriendProgress>) {
-        db.withTransaction {
-            friendDao.deleteAll()
-            friendDao.insertAll(friends.map { it.toEntity() })
-        }
-    }
-
-    suspend fun loadFriends(): List<FriendProgress> =
-        friendDao.getAll().map { it.toFriendProgress() }
-
-    suspend fun deleteFriend(userId: String) {
-        friendDao.deleteById(userId)
-    }
 
     // ── Tâches récurrentes (templates) ───────────────────────────────────────
 

@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -27,6 +28,7 @@ class ProfileFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: ProfileViewModel by viewModels()
+    private val taskViewModel: TaskViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -200,9 +202,10 @@ class ProfileFragment : Fragment() {
     // ── Share ─────────────────────────────────────────────────────────────────
 
     private fun shareProgress() {
+        val tasks = taskViewModel.tasksUiState.value
         val text = viewModel.buildShareText(
-            completedToday = 0, // TODO: inject from shared TaskViewModel
-            totalToday = 0
+            completedToday = tasks.count { it.task.status == com.example.apktask.model.TaskStatus.COMPLETED },
+            totalToday = tasks.size
         )
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"

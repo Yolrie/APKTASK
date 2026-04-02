@@ -7,9 +7,9 @@
         android:title="@string/nav_tasks" />
 
     <item
-        android:id="@+id/socialFragment"
-        android:icon="@drawable/ic_social"
-        android:title="@string/nav_social" />
+        android:id="@+id/routinesFragment"
+        android:icon="@drawable/ic_routines"
+        android:title="@string/nav_routines" />
 
     <item
         android:id="@+id/profileFragment"

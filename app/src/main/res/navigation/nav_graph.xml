@@ -10,9 +10,9 @@
         android:label="@string/nav_tasks" />
 
     <fragment
-        android:id="@+id/socialFragment"
-        android:name="com.example.apktask.ui.SocialFragment"
-        android:label="@string/nav_social" />
+        android:id="@+id/routinesFragment"
+        android:name="com.example.apktask.ui.RecurringTasksFragment"
+        android:label="@string/nav_routines" />
 
     <fragment
         android:id="@+id/profileFragment"

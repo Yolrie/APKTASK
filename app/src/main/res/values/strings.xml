@@ -4,7 +4,7 @@
 
     <!-- ── Navigation ────────────────────────────────────────────────────── -->
     <string name="nav_tasks">Tâches</string>
-    <string name="nav_social">Social</string>
+    <string name="nav_routines">Routines</string>
     <string name="nav_profile">Profil</string>
 
     <!-- ── Onglet Tâches ──────────────────────────────────────────────────── -->
@@ -38,21 +38,17 @@
     <string name="counter_terminees_default">0 terminées</string>
     <string name="counter_annulees_default">0 annulées</string>
 
-    <!-- ── Onglet Social ───────────────────────────────────────────────────── -->
-    <string name="social_title">Amis</string>
-    <string name="add_friend_title">Ajouter un ami</string>
-    <string name="add_friend_message">Entrez le code ami (8 caractères) affiché dans son profil.</string>
-    <string name="hint_friend_code">Code ami (ex: A1B2C3D4)</string>
-    <string name="remove_friend_title">Retirer cet ami ?</string>
-    <string name="remove_friend_confirm">Il ne verra plus votre progression et vice-versa.</string>
-    <string name="social_empty_title">Ajoutez vos premiers amis</string>
-    <string name="social_empty_body">Partagez votre code profil pour vous connecter.</string>
-    <string name="banner_demo_text">🔍 Mode démo — configurez Firebase pour voir de vrais amis</string>
-    <string name="streak_days">🔥 %d j</string>
-    <string name="friend_progress">%1$d / %2$d tâches</string>
-    <string name="chip_demo">Démo</string>
-    <string name="btn_add_friend">+ Ami</string>
-    <string name="btn_refresh">Actualiser</string>
+    <!-- ── Onglet Routines ──────────────────────────────────────────────────── -->
+    <string name="routines_title">Mes routines</string>
+    <string name="routines_empty_title">Aucune routine</string>
+    <string name="routines_empty_body">Créez une routine pour planifier des tâches répétitives.</string>
+    <string name="routines_add_fab">Ajouter une routine</string>
+    <string name="add_routine_title">Nouvelle routine</string>
+    <string name="add_routine_hint">Nom de la tâche…</string>
+    <string name="add_routine_priority_label">Priorité</string>
+    <string name="add_routine_frequency_label">Fréquence</string>
+    <string name="add_routine_days_label">Jours actifs</string>
+    <string name="add_routine_confirm">Créer</string>
 
     <!-- ── Onglet Profil ───────────────────────────────────────────────────── -->
     <string name="profile_name_hint">Votre prénom ou pseudo</string>

@@ -60,4 +60,13 @@ object Migrations {
             )
         }
     }
+
+    /**
+     * v4 → v5 : Suppression de la table [friends] (feature sociale retirée).
+     */
+    val MIGRATION_4_5: Migration = object : Migration(4, 5) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("DROP TABLE IF EXISTS friends")
+        }
+    }
 }
