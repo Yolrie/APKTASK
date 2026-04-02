@@ -51,4 +51,12 @@
     <color name="avatar_5">#625B71</color>  <!-- Mauve -->
     <color name="avatar_6">#00796B</color>  <!-- Teal -->
     <color name="avatar_7">#7D5260</color>  <!-- Prune -->
+
+    <!-- ── Widget colors (light mode — overridden in values-night/colors.xml) ── -->
+    <color name="widget_background">#FFFBFE</color>
+    <color name="widget_background_stroke">#E7E0EC</color>
+    <color name="widget_text_primary">#1C1B1F</color>
+    <color name="widget_text_accent">#9E82D4</color>
+    <color name="widget_progress_tint">#6750A4</color>
+    <color name="widget_progress_bg">#E7E0EC</color>
 </resources>
