@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    id("kotlin-kapt") // Génération de code Room (annotation processor)
+    alias(libs.plugins.ksp)
     // alias(libs.plugins.google.services) // Décommentez après setup Firebase
 }
 
@@ -53,19 +52,16 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+}
 
-    kotlinOptions {
-        jvmTarget = '11'
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
     }
 }
 
-// Export Room schema files to app/schemas/ so they can be committed and reviewed.
-// These files are used by MigrationTestHelper and serve as a human-readable audit
-// trail of all database schema changes.
-kapt {
-    arguments {
-        arg("room.schemaLocation", "$projectDir/schemas")
-    }
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -85,22 +81,13 @@ dependencies {
     implementation libs.fragment.ktx
     implementation libs.work.runtime.ktx
 
-    // ── Room + SQLCipher ─────────────────────────────────────────────────────
     implementation libs.room.runtime
     implementation libs.room.ktx
-    kapt libs.room.compiler
-    // SQLCipher : chiffrement AES-256 au niveau page de la base Room
+    ksp libs.room.compiler
     implementation libs.sqlcipher.android
     implementation libs.sqlite
 
-    // Biometric : authentification empreinte / visage / code PIN
     implementation libs.biometric
-
-    // ── Firebase (décommentez après avoir ajouté google-services.json) ──────
-    // implementation platform(libs.firebase.bom)
-    // implementation libs.firebase.auth.ktx
-    // implementation libs.firebase.firestore.ktx
-    // implementation libs.firebase.messaging.ktx
 
     testImplementation libs.junit
     testImplementation libs.coroutines.test
